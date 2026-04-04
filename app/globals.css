@@ -1,26 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf8f6;
+  --foreground: #262626;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-dm-serif-text);
+  --font-urdu: var(--font-noto-sans);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-hifazat-teal: #007d6e;
+  --color-hifazat-teal-light: #cfede8;
+  --color-hifazat-amber: #c4953a;
+  --color-hifazat-amber-light: #f0e4cc;
+  --color-hifazat-red: #cc504c;
+  --color-hifazat-red-light: rgba(204, 80, 76, 0.05);
+  --color-hifazat-bg: #faf8f6;
+  --color-hifazat-ink: #262626;
+  --color-hifazat-muted: rgba(38, 38, 38, 0.65);
+  --color-hifazat-border: rgba(38, 38, 38, 0.15);
+  --color-hifazat-card: #ffffff;
+  --color-hifazat-footer: #f7f0e9;
+  --color-hifazat-dark-teal: #00493e;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* RTL support */
+[dir="rtl"] .border-l-4 {
+  border-left-width: 0;
+  border-right-width: 4px;
+}
+
+[dir="rtl"] .border-l-hifazat-teal {
+  border-left-color: transparent;
+  border-right-color: var(--color-hifazat-teal);
+}
+
+/* Urdu font override — when locale is ur, headings use Noto Sans */
+[data-locale="ur"] .font-heading {
+  font-family: var(--font-urdu), sans-serif !important;
 }
