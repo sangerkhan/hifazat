@@ -24,7 +24,22 @@ const notoSans = Noto_Sans({
 
 export const metadata: Metadata = {
   title: "My Resources",
-  description: "A helpful resource guide",
+  description:
+    "Understand your rights under Pakistani law. Free, private, and available in English and Urdu.",
+  openGraph: {
+    title: "Hifazat — Know Your Rights",
+    description:
+      "Describe what happened and get clear guidance on your legal rights under Pakistani law. Free, private, and confidential.",
+    type: "website",
+    locale: "en_US",
+    siteName: "Hifazat",
+  },
+  twitter: {
+    card: "summary",
+    title: "Hifazat — Know Your Rights",
+    description:
+      "Describe what happened and get clear guidance on your legal rights under Pakistani law. Free, private, and confidential.",
+  },
 };
 
 export default function RootLayout({
