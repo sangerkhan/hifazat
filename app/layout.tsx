@@ -23,7 +23,7 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "My Resources",
+  title: "Hifazat — Know Your Rights",
   description:
     "Understand your rights under Pakistani law. Free, private, and available in English and Urdu.",
   openGraph: {
@@ -33,12 +33,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Hifazat",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Hifazat — Know Your Rights",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Hifazat — Know Your Rights",
     description:
       "Describe what happened and get clear guidance on your legal rights under Pakistani law. Free, private, and confidential.",
+    images: ["/og-image.png"],
   },
 };
 
