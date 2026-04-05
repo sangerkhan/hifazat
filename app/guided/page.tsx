@@ -10,6 +10,8 @@ import { t, tArray, tStep } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 
 const STEP_KEYS: { question: TranslationKey; options: TranslationKey; multiSelect: boolean }[] = [
+  { question: "guidedGender", options: "guidedGenderOpts", multiSelect: false },
+  { question: "guidedProvince", options: "guidedProvinceOpts", multiSelect: false },
   { question: "guidedQ1", options: "guidedQ1Opts", multiSelect: false },
   { question: "guidedQ2", options: "guidedQ2Opts", multiSelect: false },
   { question: "guidedQ3", options: "guidedQ3Opts", multiSelect: true },
@@ -23,17 +25,23 @@ function buildDescription(
   const parts: string[] = [];
 
   if (answers[0]?.length) {
-    parts.push(`This happened ${answers[0][0].toLowerCase()}.`);
+    parts.push(`I am a ${answers[0][0].toLowerCase()}.`);
   }
   if (answers[1]?.length) {
-    parts.push(`The person who did this is my ${answers[1][0].toLowerCase()}.`);
+    parts.push(`I am in ${answers[1][0]}.`);
   }
   if (answers[2]?.length) {
-    const items = answers[2].map((a) => a.toLowerCase()).join(", ");
-    parts.push(`What happened: ${items}.`);
+    parts.push(`This happened ${answers[2][0].toLowerCase()}.`);
   }
   if (answers[3]?.length) {
-    parts.push(`${answers[3][0]}.`);
+    parts.push(`The person who did this is my ${answers[3][0].toLowerCase()}.`);
+  }
+  if (answers[4]?.length) {
+    const items = answers[4].map((a) => a.toLowerCase()).join(", ");
+    parts.push(`What happened: ${items}.`);
+  }
+  if (answers[5]?.length) {
+    parts.push(`${answers[5][0]}.`);
   }
   if (additionalText.trim()) {
     parts.push(`Additional context: ${additionalText.trim()}`);
@@ -45,14 +53,14 @@ function buildDescription(
 export default function GuidedPage() {
   const { locale } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<string[][]>([[], [], [], []]);
+  const [answers, setAnswers] = useState<string[][]>([[], [], [], [], [], []]);
   const [additionalText, setAdditionalText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AssessmentData | null>(null);
 
-  const totalSteps = 5;
-  const isLastStep = currentStep === 4;
+  const totalSteps = 7;
+  const isLastStep = currentStep === 6;
 
   const handleSelect = (option: string) => {
     const step = STEP_KEYS[currentStep];
@@ -108,7 +116,7 @@ export default function GuidedPage() {
 
   const handleReset = () => {
     setResult(null);
-    setAnswers([[], [], [], []]);
+    setAnswers([[], [], [], [], [], []]);
     setAdditionalText("");
     setCurrentStep(0);
     setError("");
@@ -140,17 +148,17 @@ export default function GuidedPage() {
         {currentStep > 0 ? (
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 text-sm text-hifazat-muted mb-4 w-fit"
+            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-4"
           >
             <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
               fill="none"
               className="rtl:rotate-180"
             >
               <path
-                d="M10 12L6 8L10 4"
+                d="M12.5 15L7.5 10L12.5 5"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
@@ -162,17 +170,17 @@ export default function GuidedPage() {
         ) : (
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-sm text-hifazat-muted mb-4 w-fit"
+            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-4"
           >
             <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
               fill="none"
               className="rtl:rotate-180"
             >
               <path
-                d="M10 12L6 8L10 4"
+                d="M12.5 15L7.5 10L12.5 5"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"
@@ -184,7 +192,7 @@ export default function GuidedPage() {
         )}
 
         {/* Progress */}
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-2 mb-2">
           {Array.from({ length: totalSteps }).map((_, i) => (
             <div
               key={i}
@@ -198,8 +206,8 @@ export default function GuidedPage() {
           {tStep(locale, currentStep + 1, totalSteps)}
         </p>
 
-        {/* Question Steps 1-4 */}
-        {currentStep < 4 && (
+        {/* Question Steps 0-5 */}
+        {currentStep < 6 && (
           <>
             <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-5">
               {t(locale, STEP_KEYS[currentStep].question)}
@@ -236,7 +244,7 @@ export default function GuidedPage() {
           </>
         )}
 
-        {/* Step 5 — Additional text */}
+        {/* Step 7 — Additional text */}
         {isLastStep && (
           <>
             <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-2">

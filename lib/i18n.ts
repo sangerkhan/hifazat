@@ -30,6 +30,20 @@ export const translations = {
     assessAnalysing: "Analysing...",
     assessPrivacy: "Nothing you type is saved anywhere.",
 
+    // Guided — Gender & Province
+    guidedGender: "What is your gender?",
+    guidedGenderOpts: ["Woman", "Man", "Transgender person"],
+    guidedProvince: "Which province or territory are you in?",
+    guidedProvinceOpts: [
+      "Punjab",
+      "Sindh",
+      "Khyber Pakhtunkhwa",
+      "Balochistan",
+      "Islamabad Capital Territory",
+      "Gilgit-Baltistan",
+      "Azad Jammu & Kashmir",
+    ],
+
     // Guided
     guidedStepOf: "Step {current} of {total}",
     guidedQ1: "Where did this happen?",
@@ -80,6 +94,7 @@ export const translations = {
     guidedSkip: "Skip",
 
     // Assessment Result
+    resultCredibility: "Based on NCSW Standardized Indicators on Violence against Women in Pakistan",
     resultRecognisedAs: "What you describe is recognised as",
     resultUnderLaw: "under Pakistani Law",
     resultUrgent: "Your safety is the priority.",
@@ -111,7 +126,7 @@ export const translations = {
 
     // Footer
     footerDescription:
-      "Hifazat is a non-profit project to facilitate victims of Violence against women.",
+      "Hifazat is a non-profit project to facilitate victims of violence.",
     footerCredit: "Created by",
     footerAuthor: "Sanger Khan",
   },
@@ -128,7 +143,7 @@ export const translations = {
     // Landing
     heroHeadline: "آپ کو اپنے حقوق جاننے کا حق ہے!",
     heroSubtext:
-      "بتائیں کیا ہوا اور ہم آپ کو سمجھنے میں مدد کریں گے کہ پاکستانی قانون کے تحت آپ کیا کر سکتی ہیں۔",
+      "بتائیں کیا ہوا اور ہم آپ کو سمجھنے میں مدد کریں گے کہ پاکستانی قانون کے تحت آپ کیا کر سکتے ہیں۔",
     ctaPrimary: "اپنی صورتحال بیان کریں",
     ctaSecondary: "مجھے قدم بہ قدم رہنمائی کریں",
     emergencyLabel: "فوری خطرے میں ہیں؟",
@@ -140,10 +155,24 @@ export const translations = {
     assessSubtext:
       "آپ کے الفاظ کبھی محفوظ نہیں کیے جاتے۔ یہ گفتگو مکمل طور پر نجی ہے۔",
     assessPlaceholder:
-      "اپنے الفاظ میں بتائیں کیا ہوا... آپ اردو یا انگریزی میں لکھ سکتی ہیں۔",
+      "اپنے الفاظ میں بتائیں کیا ہوا... آپ اردو یا انگریزی میں لکھ سکتے ہیں۔",
     assessSubmit: "میری صورتحال کا جائزہ لیں",
     assessAnalysing: "تجزیہ ہو رہا ہے...",
-    assessPrivacy: "آپ جو کچھ بھی لکھتی ہیں وہ کہیں محفوظ نہیں ہوتا۔",
+    assessPrivacy: "آپ جو کچھ بھی لکھیں وہ کہیں محفوظ نہیں ہوتا۔",
+
+    // Guided — Gender & Province
+    guidedGender: "آپ کی صنف کیا ہے؟",
+    guidedGenderOpts: ["خاتون", "مرد", "ٹرانسجینڈر"],
+    guidedProvince: "آپ کس صوبے یا علاقے میں ہیں؟",
+    guidedProvinceOpts: [
+      "پنجاب",
+      "سندھ",
+      "خیبر پختونخوا",
+      "بلوچستان",
+      "اسلام آباد وفاقی دارالحکومت",
+      "گلگت بلتستان",
+      "آزاد جموں و کشمیر",
+    ],
 
     // Guided
     guidedStepOf: "مرحلہ {current} از {total}",
@@ -187,14 +216,15 @@ export const translations = {
       "باقاعدگی سے ہوتا ہے",
       "ابھی ہو رہا ہے",
     ],
-    guidedQ5: "کچھ اور بتانا چاہتی ہیں؟",
-    guidedQ5Sub: "یہ اختیاری ہے۔ آپ یہ مرحلہ چھوڑ سکتی ہیں۔",
+    guidedQ5: "کچھ اور بتانا چاہتے ہیں؟",
+    guidedQ5Sub: "یہ اختیاری ہے۔ آپ یہ مرحلہ چھوڑ سکتے ہیں۔",
     guidedQ5Placeholder: "کوئی اضافی تفصیلات یہاں لکھیں...",
     guidedNext: "اگلا",
     guidedSubmit: "جمع کرائیں",
     guidedSkip: "چھوڑیں",
 
     // Assessment Result
+    resultCredibility: "پاکستان میں تشدد کے خلاف NCSW کے معیاری اشاریوں پر مبنی",
     resultRecognisedAs: "آپ نے جو بیان کیا ہے وہ تسلیم شدہ ہے بطور",
     resultUnderLaw: "پاکستانی قانون کے تحت",
     resultUrgent: "آپ کی حفاظت سب سے اہم ہے۔",
@@ -208,12 +238,12 @@ export const translations = {
     resultPriorityImmediate: "فوری",
     resultPriorityShort: "قلیل مدتی",
     resultPriorityLong: "طویل مدتی",
-    resultActionsHeading: "آپ کیا کر سکتی ہیں",
+    resultActionsHeading: "آپ کیا کر سکتے ہیں",
     resultResourcesHeading: "آپ کے لیے وسائل",
     resultNote: "نوٹ",
     resultReportComplaint: "ابھی شکایت درج کروائیں",
     resultReportHelper:
-      "یہ آپ کو شکایت درج کرانے کے صفحے پر لے جائے گا جہاں آپ اپنا پہلا قدم اٹھا سکتی ہیں۔",
+      "یہ آپ کو شکایت درج کرانے کے صفحے پر لے جائے گا جہاں آپ اپنا پہلا قدم اٹھا سکتے ہیں۔",
     resultNewAssessment: "نیا جائزہ شروع کریں",
 
     // Resources page
@@ -226,7 +256,7 @@ export const translations = {
 
     // Footer
     footerDescription:
-      "حفاظت خواتین کے خلاف تشدد کے متاثرین کی مدد کے لیے ایک غیر منافع بخش منصوبہ ہے۔",
+      "حفاظت تشدد کے متاثرین کی مدد کے لیے ایک غیر منافع بخش منصوبہ ہے۔",
     footerCredit: "تخلیق کار",
     footerAuthor: "سنگر خان",
   },

@@ -365,5 +365,27 @@ export const NCSW_KNOWLEDGE_BASE = {
         }
       ]
     }
-  ]
+  ],
+
+  prevalence: {
+    source: "Pakistan Demographic and Health Survey (PDHS) 2017-18",
+    key_stats: [
+      "34% of ever-married women aged 15-49 have experienced spousal physical, sexual, or emotional violence",
+      "26% of women have experienced physical violence since age 15",
+      "6% of women have experienced sexual violence",
+      "Women with no education are more likely to experience spousal violence (40%) compared to women with higher education (14%)",
+      "Violence is highest in rural areas and lower socioeconomic groups"
+    ]
+  },
+
+  ethical_principles: {
+    source: "NCSW Standardized Indicators Framework — Ethical Guidelines",
+    principles: [
+      "Do no harm — safety of the person is the absolute priority",
+      "Confidentiality — no personal data should be stored or shared",
+      "Informed consent — users must understand what the tool does and does not do",
+      "Referral obligation — always provide relevant helpline and support contacts",
+      "This tool is NOT a substitute for legal advice, therapy, or emergency services"
+    ]
+  }
 };

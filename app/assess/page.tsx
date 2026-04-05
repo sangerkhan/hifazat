@@ -65,17 +65,17 @@ export default function AssessPage() {
         <div className="flex flex-col">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-sm text-hifazat-muted mb-6 w-fit"
+            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-6 w-fit"
           >
             <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
               fill="none"
               className="rtl:rotate-180"
             >
               <path
-                d="M10 12L6 8L10 4"
+                d="M12.5 15L7.5 10L12.5 5"
                 stroke="currentColor"
                 strokeWidth="1.5"
                 strokeLinecap="round"

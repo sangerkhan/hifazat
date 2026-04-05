@@ -47,6 +47,14 @@ function isValidAssessment(data: unknown): boolean {
   if (!Array.isArray(d.actions) || d.actions.length === 0) return false;
   if (!Array.isArray(d.resources) || d.resources.length === 0) return false;
 
+  // Validate primary_action if present (not required for backward compat)
+  if (d.primary_action) {
+    const pa = d.primary_action as Record<string, unknown>;
+    if (!["call", "link"].includes(pa.type as string)) return false;
+    if (typeof pa.label !== "string") return false;
+    if (typeof pa.value !== "string") return false;
+  }
+
   return true;
 }
 
@@ -136,6 +144,13 @@ function getFallbackResponse(input: string) {
         },
       ],
       note: "You are not alone, and what happened to you is not your fault. Many women in Pakistan have successfully sought help and protection through these channels.",
+      primary_action: {
+        type: "call",
+        label: "Call Punjab Women's Helpline (1043)",
+        value: "1043",
+        description:
+          "24/7 helpline with all-women call agents who specialise in violence against women cases.",
+      },
     };
   }
 
@@ -203,6 +218,13 @@ function getFallbackResponse(input: string) {
         },
       ],
       note: "Please take these threats seriously. You deserve to live free from fear.",
+      primary_action: {
+        type: "call",
+        label: "Call Police (15)",
+        value: "15",
+        description:
+          "For immediate police intervention and protection from threats to your life.",
+      },
     };
   }
 
@@ -282,6 +304,13 @@ function getFallbackResponse(input: string) {
         },
       ],
       note: "You are not to blame for someone else's criminal behaviour. Many women have successfully had content removed and perpetrators prosecuted through these channels.",
+      primary_action: {
+        type: "link",
+        label: "Report to FIA Cyber Crime",
+        value: "https://ccs.fia.gov.pk/",
+        description:
+          "File a complaint with the FIA Cyber Crime Wing for online harassment and blackmail.",
+      },
     };
   }
 
@@ -360,6 +389,13 @@ function getFallbackResponse(input: string) {
       },
     ],
     note: "You took a brave step by describing your situation. Whatever you decide to do next, know that support is available and you deserve to be treated with dignity.",
+    primary_action: {
+      type: "call",
+      label: "Call Human Rights Helpline (1099)",
+      value: "1099",
+      description:
+        "Free confidential counseling and legal advice for your situation.",
+    },
   };
 }
 
