@@ -89,10 +89,6 @@ export default function AssessmentResult({
       ? data.classifications[0].category_name
       : "";
 
-  const allCharges = data.classifications
-    .map((c) => c.legal_reference)
-    .filter(Boolean);
-
   return (
     <div className="flex flex-col gap-6 px-5 py-6">
       {/* Header — Logo + Language Toggle */}
@@ -168,15 +164,12 @@ export default function AssessmentResult({
 
       {/* Validation — "What you describe is recognised as" */}
       <div className="flex flex-col gap-2">
-        <p className="text-base text-hifazat-muted">
+        <p className="text-base text-hifazat-ink font-medium">
           {t(locale, "resultRecognisedAs")}
         </p>
-        <h1 className="font-heading font-serif text-[32px] leading-[1.3] text-hifazat-ink">
+        <h1 className="font-heading font-serif text-[40px] leading-[1.3] text-hifazat-ink">
           {primaryCategory}
         </h1>
-        <p className="text-sm text-hifazat-muted">
-          {t(locale, "resultCredibility")}
-        </p>
       </div>
 
       {/* Validation text */}
@@ -184,37 +177,25 @@ export default function AssessmentResult({
         {data.validation}
       </p>
 
-      {/* Severity + Charges side by side */}
-      <div className="flex gap-2 items-start">
-        {/* Severity */}
-        <div className="flex-1 flex flex-col gap-2">
-          <p className="text-sm text-hifazat-muted font-semibold">
-            {t(locale, "resultLegalSeverity")}
-          </p>
-          <span
-            className={`inline-flex self-start px-6 py-1 rounded-full text-base font-semibold ${severityColor}`}
-          >
-            {severityLabel}
-          </span>
-        </div>
-        {/* Charges */}
-        <div className="flex-1 flex flex-col gap-2">
-          <p className="text-sm text-hifazat-muted font-semibold">
-            {t(locale, "resultCharges")}
-          </p>
-          {allCharges.length > 0 ? (
-            allCharges.map((charge, i) => (
-              <p key={i} className="text-base font-semibold text-hifazat-ink">
-                {charge}
-              </p>
-            ))
-          ) : (
-            <p className="text-base font-semibold text-hifazat-ink">—</p>
-          )}
-        </div>
+      {/* Severity */}
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-hifazat-muted font-semibold">
+          {t(locale, "resultLegalSeverity")}
+        </p>
+        <span
+          className={`inline-flex self-start px-6 py-1 rounded-full text-base font-semibold ${severityColor}`}
+        >
+          {severityLabel}
+        </span>
       </div>
 
-      {/* Classifications */}
+      {/* Divider */}
+      <hr className="border-hifazat-border" />
+
+      {/* Legal breakdown */}
+      <h2 className="font-heading font-serif text-[32px] leading-[1.3] text-hifazat-ink">
+        {t(locale, "resultClassificationsHeading")}
+      </h2>
       <div className="flex flex-col gap-4">
         {data.classifications.map((c, i) => (
           <div
@@ -224,11 +205,15 @@ export default function AssessmentResult({
             <h3 className="text-[18px] font-semibold text-hifazat-ink">
               {c.indicator_name}
             </h3>
-            <p className="text-sm text-hifazat-muted leading-relaxed">
+            <p className="text-base text-hifazat-muted leading-relaxed">
               {c.explanation}
             </p>
-            <div className="flex w-full justify-center px-4 py-2 rounded-[8px] bg-hifazat-teal-light text-hifazat-teal text-sm font-semibold text-center">
-              {c.legal_reference}
+            <div className="w-full px-4 py-2 rounded-[8px] bg-hifazat-teal-light text-hifazat-teal text-base font-semibold text-left">
+              <ul className="list-disc list-inside flex flex-col gap-1">
+                {c.legal_reference.split(/;\s*/).map((ref, j) => (
+                  <li key={j}>{ref.trim()}</li>
+                ))}
+              </ul>
             </div>
           </div>
         ))}
@@ -262,7 +247,7 @@ export default function AssessmentResult({
                 <h3 className="text-[18px] font-semibold text-white">
                   {a.step}
                 </h3>
-                <p className="text-sm text-white/80 leading-relaxed">
+                <p className="text-base text-white/80 leading-relaxed">
                   {a.details}
                 </p>
               </div>
@@ -303,7 +288,7 @@ export default function AssessmentResult({
                 {r.website.replace(/^https?:\/\//, "")}
               </a>
             )}
-            <p className="text-sm text-hifazat-muted leading-relaxed">
+            <p className="text-base text-hifazat-muted leading-relaxed">
               {r.why}
             </p>
           </div>
@@ -391,9 +376,14 @@ export default function AssessmentResult({
         </p>
         <p className="text-sm text-hifazat-muted">
           {t(locale, "footerCredit")}{" "}
-          <span className="font-semibold text-hifazat-ink">
+          <a
+            href="https://www.sangerkhan.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-hifazat-ink underline"
+          >
             {t(locale, "footerAuthor")}
-          </span>
+          </a>
         </p>
       </div>
     </div>

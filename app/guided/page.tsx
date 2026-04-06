@@ -96,7 +96,7 @@ export default function GuidedPage() {
       const res = await fetch("/api/assess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: description }),
+        body: JSON.stringify({ input: description, locale }),
       });
 
       if (!res.ok) {

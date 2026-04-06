@@ -24,7 +24,7 @@ export default function AssessPage() {
       const res = await fetch("/api/assess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: input.trim() }),
+        body: JSON.stringify({ input: input.trim(), locale }),
       });
 
       if (!res.ok) {

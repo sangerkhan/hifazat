@@ -404,7 +404,8 @@ function getFallbackResponse(input: string) {
 // ---------------------------------------------------------------------------
 export async function POST(request: Request) {
   try {
-    const { input } = await request.json();
+    const { input, locale } = await request.json();
+    const lang: "en" | "ur" = locale === "ur" ? "ur" : "en";
 
     if (!input || input.trim().length === 0) {
       return NextResponse.json(
@@ -431,7 +432,7 @@ export async function POST(request: Request) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: buildSystemPrompt() }],
+              parts: [{ text: buildSystemPrompt(lang) }],
             },
             contents: [
               {
