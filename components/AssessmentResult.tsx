@@ -244,11 +244,17 @@ export default function AssessmentResult({
                 {i + 1}
               </span>
               <div className="flex-1 flex flex-col gap-2">
-                <h3 className="text-[18px] font-semibold text-white">
+                <h3 className="text-xl font-semibold text-white">
                   {a.step}
                 </h3>
                 <p className="text-base text-white/80 leading-relaxed">
-                  {a.details}
+                  {a.details.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
+                    part.startsWith("**") && part.endsWith("**") ? (
+                      <strong key={j} className="font-bold">{part.slice(2, -2)}</strong>
+                    ) : (
+                      <span key={j}>{part}</span>
+                    )
+                  )}
                 </p>
               </div>
             </div>

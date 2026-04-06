@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
@@ -9,39 +9,107 @@ import { useLanguage } from "@/lib/language-context";
 import { t, tArray, tStep } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n";
 
-const STEP_KEYS: { question: TranslationKey; options: TranslationKey; multiSelect: boolean }[] = [
-  { question: "guidedGender", options: "guidedGenderOpts", multiSelect: false },
-  { question: "guidedProvince", options: "guidedProvinceOpts", multiSelect: false },
-  { question: "guidedQ1", options: "guidedQ1Opts", multiSelect: false },
-  { question: "guidedQ2", options: "guidedQ2Opts", multiSelect: false },
-  { question: "guidedQ3", options: "guidedQ3Opts", multiSelect: true },
-  { question: "guidedQ4", options: "guidedQ4Opts", multiSelect: false },
-];
+// ---------------------------------------------------------------------------
+// Step definition
+// ---------------------------------------------------------------------------
+interface StepDef {
+  id: string;
+  question: TranslationKey;
+  options?: TranslationKey;
+  multiSelect: boolean;
+  type: "options" | "text";
+}
 
+const SPOUSE_VALUES = ["Husband or partner", "Ex-partner"];
+// Urdu equivalents so the conditional works regardless of locale
+const SPOUSE_VALUES_UR = ["شوہر یا پارٹنر", "سابق پارٹنر"];
+
+function isSpouse(who: string[] | undefined): boolean {
+  if (!who?.length) return false;
+  return SPOUSE_VALUES.includes(who[0]) || SPOUSE_VALUES_UR.includes(who[0]);
+}
+
+const YES_VALUES = ["Yes", "ہاں"];
+
+function isYes(val: string[] | undefined): boolean {
+  if (!val?.length) return false;
+  return YES_VALUES.includes(val[0]);
+}
+
+// ---------------------------------------------------------------------------
+// Compute the dynamic step list based on current answers
+// ---------------------------------------------------------------------------
+function computeSteps(answers: Record<string, string[]>): StepDef[] {
+  const steps: StepDef[] = [
+    { id: "gender", question: "guidedGender", options: "guidedGenderOpts", multiSelect: false, type: "options" },
+    { id: "province", question: "guidedProvince", options: "guidedProvinceOpts", multiSelect: false, type: "options" },
+    { id: "where", question: "guidedQ1", options: "guidedQ1Opts", multiSelect: false, type: "options" },
+    { id: "who", question: "guidedQ2", options: "guidedQ2Opts", multiSelect: false, type: "options" },
+  ];
+
+  // Conditional spouse/family steps
+  if (isSpouse(answers.who)) {
+    steps.push({ id: "kidsInvolved", question: "guidedKids", options: "guidedKidsOpts", multiSelect: false, type: "options" });
+
+    if (isYes(answers.kidsInvolved)) {
+      steps.push({ id: "kidsCount", question: "guidedKidsCount", options: "guidedKidsCountOpts", multiSelect: false, type: "options" });
+    }
+
+    steps.push({ id: "intent", question: "guidedIntent", options: "guidedIntentOpts", multiSelect: true, type: "options" });
+  }
+
+  // Always-present remaining steps
+  steps.push(
+    { id: "whatHappened", question: "guidedQ3", options: "guidedQ3Opts", multiSelect: true, type: "options" },
+    { id: "howOften", question: "guidedQ4", options: "guidedQ4Opts", multiSelect: false, type: "options" },
+    { id: "additional", question: "guidedQ5", type: "text", multiSelect: false },
+  );
+
+  return steps;
+}
+
+// ---------------------------------------------------------------------------
+// Build the prose description sent to the AI
+// ---------------------------------------------------------------------------
 function buildDescription(
-  answers: string[][],
+  answers: Record<string, string[]>,
   additionalText: string
 ): string {
   const parts: string[] = [];
 
-  if (answers[0]?.length) {
-    parts.push(`I am a ${answers[0][0].toLowerCase()}.`);
+  if (answers.gender?.length) {
+    parts.push(`I am a ${answers.gender[0].toLowerCase()}.`);
   }
-  if (answers[1]?.length) {
-    parts.push(`I am in ${answers[1][0]}.`);
+  if (answers.province?.length) {
+    parts.push(`I am in ${answers.province[0]}.`);
   }
-  if (answers[2]?.length) {
-    parts.push(`This happened ${answers[2][0].toLowerCase()}.`);
+  if (answers.where?.length) {
+    parts.push(`This happened ${answers.where[0].toLowerCase()}.`);
   }
-  if (answers[3]?.length) {
-    parts.push(`The person who did this is my ${answers[3][0].toLowerCase()}.`);
+  if (answers.who?.length) {
+    parts.push(`The person who did this is my ${answers.who[0].toLowerCase()}.`);
   }
-  if (answers[4]?.length) {
-    const items = answers[4].map((a) => a.toLowerCase()).join(", ");
+
+  // Conditional spouse fields
+  if (answers.kidsInvolved?.length) {
+    if (isYes(answers.kidsInvolved)) {
+      const count = answers.kidsCount?.[0] || "";
+      parts.push(`Children are involved. I have ${count} children.`);
+    } else {
+      parts.push(`No children are involved.`);
+    }
+  }
+  if (answers.intent?.length) {
+    const goals = answers.intent.map((a) => a.toLowerCase()).join(", ");
+    parts.push(`My goal: ${goals}.`);
+  }
+
+  if (answers.whatHappened?.length) {
+    const items = answers.whatHappened.map((a) => a.toLowerCase()).join(", ");
     parts.push(`What happened: ${items}.`);
   }
-  if (answers[5]?.length) {
-    parts.push(`${answers[5][0]}.`);
+  if (answers.howOften?.length) {
+    parts.push(`${answers.howOften[0]}.`);
   }
   if (additionalText.trim()) {
     parts.push(`Additional context: ${additionalText.trim()}`);
@@ -50,39 +118,55 @@ function buildDescription(
   return parts.join(" ");
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export default function GuidedPage() {
   const { locale } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<string[][]>([[], [], [], [], [], []]);
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [additionalText, setAdditionalText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AssessmentData | null>(null);
 
-  const totalSteps = 7;
-  const isLastStep = currentStep === 6;
+  const steps = useMemo(() => computeSteps(answers), [answers]);
+  const totalSteps = steps.length;
+  const currentStepDef = steps[currentStep];
+  const isLastStep = currentStepDef?.type === "text";
 
   const handleSelect = (option: string) => {
-    const step = STEP_KEYS[currentStep];
-    const current = answers[currentStep] || [];
+    const step = currentStepDef;
+    const current = answers[step.id] || [];
 
     if (step.multiSelect) {
       const updated = current.includes(option)
         ? current.filter((o) => o !== option)
         : [...current, option];
-      const newAnswers = [...answers];
-      newAnswers[currentStep] = updated;
-      setAnswers(newAnswers);
+      setAnswers((prev) => ({ ...prev, [step.id]: updated }));
     } else {
-      const newAnswers = [...answers];
-      newAnswers[currentStep] = [option];
+      const newAnswers = { ...answers, [step.id]: [option] };
+
+      // When changing the "who" answer, clear conditional fields if no longer spouse
+      if (step.id === "who" && !SPOUSE_VALUES.includes(option) && !SPOUSE_VALUES_UR.includes(option)) {
+        delete newAnswers.kidsInvolved;
+        delete newAnswers.kidsCount;
+        delete newAnswers.intent;
+      }
+
+      // When changing kidsInvolved to No, clear kidsCount
+      if (step.id === "kidsInvolved" && !YES_VALUES.includes(option)) {
+        delete newAnswers.kidsCount;
+      }
+
       setAnswers(newAnswers);
       setTimeout(() => setCurrentStep((s) => s + 1), 200);
     }
   };
 
   const handleMultiSelectNext = () => {
-    if (answers[currentStep]?.length > 0) {
+    const step = currentStepDef;
+    if (answers[step.id]?.length > 0) {
       setCurrentStep((s) => s + 1);
     }
   };
@@ -116,7 +200,7 @@ export default function GuidedPage() {
 
   const handleReset = () => {
     setResult(null);
-    setAnswers([[], [], [], [], [], []]);
+    setAnswers({});
     setAdditionalText("");
     setCurrentStep(0);
     setError("");
@@ -206,16 +290,16 @@ export default function GuidedPage() {
           {tStep(locale, currentStep + 1, totalSteps)}
         </p>
 
-        {/* Question Steps 0-5 */}
-        {currentStep < 6 && (
+        {/* Option-based steps */}
+        {currentStepDef?.type === "options" && (
           <>
             <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-5">
-              {t(locale, STEP_KEYS[currentStep].question)}
+              {t(locale, currentStepDef.question)}
             </h1>
 
             <div className="flex flex-col gap-3">
-              {tArray(locale, STEP_KEYS[currentStep].options).map((option) => {
-                const selected = answers[currentStep]?.includes(option) || false;
+              {tArray(locale, currentStepDef.options!).map((option) => {
+                const selected = answers[currentStepDef.id]?.includes(option) || false;
                 return (
                   <button
                     key={option}
@@ -232,10 +316,10 @@ export default function GuidedPage() {
               })}
             </div>
 
-            {STEP_KEYS[currentStep].multiSelect && (
+            {currentStepDef.multiSelect && (
               <button
                 onClick={handleMultiSelectNext}
-                disabled={!answers[currentStep]?.length}
+                disabled={!answers[currentStepDef.id]?.length}
                 className="w-full mt-5 h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50"
               >
                 {t(locale, "guidedNext")}
@@ -244,7 +328,7 @@ export default function GuidedPage() {
           </>
         )}
 
-        {/* Step 7 — Additional text */}
+        {/* Text step (last step) */}
         {isLastStep && (
           <>
             <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-2">
