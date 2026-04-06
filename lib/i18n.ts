@@ -15,7 +15,7 @@ export const translations = {
     heroSubtext:
       "Describe what happened and we'll help you understand what you can do about it under Pakistani Law.",
     ctaPrimary: "Describe your situation",
-    ctaSecondary: "Guide me step by step",
+    ctaSecondary: "Analyse my situation",
     emergencyLabel: "In Immediate danger?",
     callPolice: "Call 15 (Police)",
     callHumanRights: "Call 1099 (Human rights)",
@@ -157,7 +157,7 @@ export const translations = {
     heroSubtext:
       "بتائیں کیا ہوا اور ہم آپ کو سمجھنے میں مدد کریں گے کہ پاکستانی قانون کے تحت آپ کیا کر سکتے ہیں۔",
     ctaPrimary: "اپنی صورتحال بیان کریں",
-    ctaSecondary: "مجھے قدم بہ قدم رہنمائی کریں",
+    ctaSecondary: "میری صورتحال کا جائزہ لیں",
     emergencyLabel: "فوری خطرے میں ہیں؟",
     callPolice: "15 پر کال کریں (پولیس)",
     callHumanRights: "1099 پر کال کریں (انسانی حقوق)",
