@@ -191,7 +191,7 @@ Respond with ONLY a valid JSON object. No markdown. No preamble. No explanation 
     {
       "name": "Organisation name",
       "phone": "Phone number",
-      "website": "Optional website URL if relevant (e.g. nccia.gov.pk, ccs.fia.gov.pk)",
+      "website": "Optional website URL if relevant (e.g. nccia.gov.pk, complaint.fia.gov.pk)",
       "why": "One sentence: why this SPECIFIC resource is relevant to THEIR specific situation"
     }
   ],
@@ -199,7 +199,7 @@ Respond with ONLY a valid JSON object. No markdown. No preamble. No explanation 
   "primary_action": {
     "type": "call or link — use 'call' for phone numbers, 'link' for web URLs",
     "label": "Short label for the button, e.g. 'Report to FIA Cyber Crime' or 'Call Police (15)' or 'Call Punjab Women's Helpline (1043)'",
-    "value": "The phone number (just digits like '15' or '1991') or full URL (like 'https://ccs.fia.gov.pk/')",
+    "value": "The phone number (just digits like '15' or '1991') or full URL (like 'https://complaint.fia.gov.pk/')",
     "description": "One sentence explaining what will happen when they tap this button"
   }
 }
@@ -211,7 +211,7 @@ Respond with ONLY a valid JSON object. No markdown. No preamble. No explanation 
 
 ## PRIMARY ACTION ROUTING
 ALWAYS include a primary_action object. Choose the MOST relevant action based on the case:
-- Cyber violence → link to FIA Cyber Crime (https://ccs.fia.gov.pk/) or NCCIA (https://nccia.gov.pk/)
+- Cyber violence → link to FIA Cyber Crime (https://complaint.fia.gov.pk/) or NCCIA (https://nccia.gov.pk/)
 - Workplace harassment → link to FOSPAH (https://www.fospah.gov.pk/)
 - Physical/domestic violence → call relevant helpline (1043 for Punjab women, 1099 for others)
 - Urgent/critical cases → call Police (15)

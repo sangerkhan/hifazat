@@ -279,7 +279,7 @@ function getFallbackResponse(input: string) {
         {
           step: "Report to FIA Cyber Crime (1991)",
           details:
-            "Call the FIA Cyber Crime helpline or visit their nearest office. They handle all online harassment, blackmail, and image-sharing cases. You can also report at ccs.fia.gov.pk.",
+            "Call the FIA Cyber Crime helpline or visit their nearest office. They handle all online harassment, blackmail, and image-sharing cases. You can also report at complaint.fia.gov.pk.",
           priority: "immediate",
         },
         {
@@ -310,7 +310,7 @@ function getFallbackResponse(input: string) {
       primary_action: {
         type: "link",
         label: "Report to FIA Cyber Crime",
-        value: "https://ccs.fia.gov.pk/",
+        value: "https://complaint.fia.gov.pk/",
         description:
           "File a complaint with the FIA Cyber Crime Wing for online harassment and blackmail.",
       },

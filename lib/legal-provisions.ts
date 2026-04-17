@@ -149,7 +149,7 @@ export const LEGAL_PROVISIONS = {
       fia_cyber_crime: {
         name: "FIA Cyber Crime Wing",
         phone: "1991",
-        url: "https://ccs.fia.gov.pk/",
+        url: "https://complaint.fia.gov.pk/",
       },
       nccia: {
         name: "National Cyber Crime Investigation Agency",
