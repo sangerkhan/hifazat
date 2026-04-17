@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { buildSystemPrompt } from "@/lib/system-prompt";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+];
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 // ---------------------------------------------------------------------------
 // JSON parsing helper — handles both raw JSON and markdown-fenced JSON
@@ -416,62 +419,78 @@ export async function POST(request: Request) {
 
     const trimmedInput = input.trim();
 
-    // Try Gemini API call
+    // Try Gemini API call — attempt each model in order
     try {
       if (!GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY not configured");
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45_000);
+      const requestBody = JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: buildSystemPrompt(lang) }],
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: trimmedInput }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 4096,
+          responseMimeType: "application/json",
+        },
+      });
 
-      const response = await fetch(
-        `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{ text: buildSystemPrompt(lang) }],
-            },
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: trimmedInput }],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 4096,
-              responseMimeType: "application/json",
-            },
-          }),
-          signal: controller.signal,
+      let lastError: Error | null = null;
+
+      for (const model of GEMINI_MODELS) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 45_000);
+
+          const response = await fetch(
+            `${GEMINI_BASE}/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: requestBody,
+              signal: controller.signal,
+            }
+          );
+
+          clearTimeout(timeout);
+
+          if (!response.ok) {
+            const errorBody = await response.text();
+            console.warn(`${model} returned ${response.status}, trying next model...`);
+            lastError = new Error(`${model} error ${response.status}: ${errorBody}`);
+            continue;
+          }
+
+          const data = await response.json();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!rawText) {
+            console.warn(`${model} returned empty response, trying next model...`);
+            lastError = new Error(`${model} returned empty response`);
+            continue;
+          }
+
+          const parsed = parseClaudeJSON(rawText);
+          if (parsed && isValidAssessment(parsed)) {
+            return NextResponse.json(parsed);
+          }
+
+          console.warn(`${model} returned invalid JSON, trying next model...`);
+          lastError = new Error(`${model} returned invalid JSON`);
+        } catch (modelError) {
+          console.warn(`${model} failed:`, modelError);
+          lastError = modelError instanceof Error ? modelError : new Error(String(modelError));
         }
-      );
-
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`Gemini API error ${response.status}: ${errorBody}`);
       }
 
-      const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) {
-        throw new Error("Empty response from Gemini");
-      }
-
-      const parsed = parseClaudeJSON(rawText);
-      if (parsed && isValidAssessment(parsed)) {
-        return NextResponse.json(parsed);
-      }
-
-      console.warn(
-        "Gemini returned invalid JSON, falling back to hardcoded response"
-      );
-      return NextResponse.json(getFallbackResponse(trimmedInput));
+      // All models failed
+      throw lastError || new Error("All Gemini models failed");
     } catch (aiError) {
       console.error("Gemini API error, using fallback:", aiError);
       return NextResponse.json(getFallbackResponse(trimmedInput));
