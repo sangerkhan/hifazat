@@ -52,7 +52,7 @@ export default function AssessPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
       {/* Header */}
       <header className="flex flex-col items-center gap-4 px-5 py-6">
         <Link href="/">

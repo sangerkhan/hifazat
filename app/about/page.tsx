@@ -19,7 +19,7 @@ export default function AboutPage() {
   const { locale } = useLanguage();
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full max-w-[680px] mx-auto">
       <header className="flex flex-col items-center gap-4 px-5 py-6">
         <Link href="/">
           <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />

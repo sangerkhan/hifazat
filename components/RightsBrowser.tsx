@@ -75,7 +75,7 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
   const shown = useMemo(() => categories, [categories]);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full max-w-[600px] lg:max-w-4xl mx-auto">
       <header className="flex flex-col items-center gap-4 px-5 py-6">
         <Link href="/">
           <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
@@ -104,7 +104,7 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
           <p className="text-sm font-semibold text-hifazat-ink mb-2">
             {t(locale, "rightsProvincePrompt")}
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5">
+          <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
             <button onClick={() => choose("")} className={chip(province === "")}>
               {t(locale, "rightsNoProvince")}
             </button>

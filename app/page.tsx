@@ -11,7 +11,7 @@ export default function Home() {
   const { locale } = useLanguage();
 
   return (
-    <div className="flex flex-col min-h-screen px-5 py-10">
+    <div className="flex flex-col min-h-screen px-5 py-10 w-full max-w-[600px] lg:max-w-3xl mx-auto">
       {/* Header — centered logo + toggle */}
       <header className="flex flex-col items-center gap-6">
         <Image
@@ -37,7 +37,7 @@ export default function Home() {
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col gap-4 w-full">
+        <div className="flex flex-col sm:flex-row gap-4 w-full">
           <Link
             href="/assess"
             className="flex items-center justify-center w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg"
@@ -58,7 +58,7 @@ export default function Home() {
         <p className="font-heading font-serif text-2xl text-hifazat-ink">
           {t(locale, "emergencyLabel")}
         </p>
-        <div className="flex flex-col items-center gap-4 text-hifazat-red font-semibold text-lg">
+        <div className="flex flex-col sm:flex-row sm:justify-center sm:gap-10 items-center gap-4 text-hifazat-red font-semibold text-lg">
           <a href="tel:15">{t(locale, "callPolice")}</a>
           <a href="tel:1099">{t(locale, "callHumanRights")}</a>
         </div>

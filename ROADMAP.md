@@ -124,7 +124,8 @@ lawyers, hosting, co-branding).
       (~2,000+ chunks). Reasoning and the trigger in `docs/BACKEND.md`.
 - [ ] Shareable/printable assessment result
 - [ ] Aggregate trend dashboard for partner organisations
-- [ ] Desktop and tablet layouts
+- [x] Desktop and tablet layouts — the global 600px cap is gone; width is now
+      chosen per surface, and the directory grids on wide screens
 - [ ] Native iOS and Android
 - [ ] Legal admin portal, once the network reaches 100 lawyers
 - [ ] Sandbox / game-style environments for school and college workshops

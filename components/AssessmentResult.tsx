@@ -127,7 +127,7 @@ export default function AssessmentResult({
       : "";
 
   return (
-    <div className="flex flex-col gap-6 px-5 py-6">
+    <div className="flex flex-col gap-6 px-5 py-6 w-full max-w-[600px] lg:max-w-3xl mx-auto">
       {/* Header — Logo + Language Toggle */}
       <div className="flex items-center justify-between">
         <Link href="/">

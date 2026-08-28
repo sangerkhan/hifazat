@@ -61,7 +61,11 @@ export default function RootLayout({
       lang="en"
       className={`${dmSans.variable} ${dmSerifText.variable} ${notoSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-hifazat-bg text-hifazat-ink font-sans max-w-[600px] mx-auto">
+      {/* The 600px cap used to live here, which made every screen mobile-only.
+          Width is now chosen per surface: forms stay narrow because a long
+          measure is harder to fill in, prose stays readable, and card lists are
+          free to use the space. */}
+      <body className="min-h-full flex flex-col bg-hifazat-bg text-hifazat-ink font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

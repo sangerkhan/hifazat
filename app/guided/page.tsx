@@ -268,7 +268,7 @@ export default function GuidedPage() {
   // matter.
   if (loading && (preview.validation || preview.is_urgent)) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
         {header}
         <main className="flex-1 px-5 pb-10 flex flex-col gap-5">
           {preview.is_urgent && (
@@ -328,7 +328,7 @@ export default function GuidedPage() {
   // them skip the rest of the flow entirely.
   if (showDanger) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
         {header}
         <main className="flex-1 px-5 pb-10 flex flex-col gap-6">
           <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[24px] p-6 flex flex-col gap-4">
@@ -386,7 +386,7 @@ export default function GuidedPage() {
   const summary = summariseAnswers(answers, additionalText, locale);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
       {header}
 
       <main className="flex-1 px-5 pb-10">
