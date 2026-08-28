@@ -365,7 +365,7 @@ Respond with ONLY a valid JSON object. No markdown, no preamble, no text outside
 ## PRIMARY ACTION ROUTING
 Always include primary_action, chosen from AVAILABLE RESOURCES:
 - Cyber or image-based abuse → the cyber crime complaint route
-- Workplace harassment → FOSPAH
+- Workplace harassment → the provincial ombudsperson where AVAILABLE RESOURCES lists one for this province, otherwise federal FOSPAH. The provincial office is closer and usually faster.
 - Domestic or physical violence → the province's women's helpline where one is listed, otherwise 1099
 - Urgent or critical → Police (15)
 

@@ -2,18 +2,11 @@ import { NextResponse } from "next/server";
 import {
   ADMIN_COOKIE,
   SESSION_COOKIE_OPTIONS,
-  clearLoginAttempts,
   createSessionToken,
   isAdminConfigured,
-  isLoginRateLimited,
   verifyPassword,
 } from "@/lib/admin/auth";
-
-function clientKey(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return request.headers.get("x-real-ip") ?? "unknown";
-}
+import { allowRequest, clientBucket } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   // With no password configured the admin section does not exist, and this
@@ -22,8 +15,10 @@ export async function POST(request: Request) {
     return new NextResponse(null, { status: 404 });
   }
 
-  const key = clientKey(request);
-  if (isLoginRateLimited(key)) {
+  // Ten attempts per quarter hour. Shared across instances where a database is
+  // configured, so guessing cannot be spread across cold starts.
+  const bucket = clientBucket(request, "admin-login");
+  if (!(await allowRequest(bucket, { max: 10, windowSeconds: 900 }))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
@@ -39,8 +34,6 @@ export async function POST(request: Request) {
     // malformed one.
     return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
   }
-
-  clearLoginAttempts(key);
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(ADMIN_COOKIE, createSessionToken(), SESSION_COOKIE_OPTIONS);

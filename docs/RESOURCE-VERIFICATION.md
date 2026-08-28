@@ -86,6 +86,10 @@ resource at all** — users there see only national numbers.
 | `gb_social_welfare` | Gilgit-Baltistan | Which district offices handle violence cases? Is there any shelter capacity at all? |
 | `ajk_social_welfare` | AJK | Departmental contacts, and which federal statutes AJK has adopted locally. |
 | `war_lahore` | Punjab | Lahore office number. |
+| `fospah_punjab` | Punjab | Provincial harassment ombudsperson — contact details and intake route. |
+| `fospah_sindh` | Sindh | Provincial harassment ombudsperson — contact details and intake route. |
+| `fospah_kp` | KP | Provincial harassment ombudsperson — contact details and intake route. |
+| `fospah_balochistan` | Balochistan | Confirm the office is operational, and its contact details. |
 | `dastak` | Punjab | Intake number; whether direct approach is accepted or referral is required. |
 | `sahil` | National | Current toll-free number for child sexual abuse cases. |
 | `aurat_foundation` | National | Provincial office numbers. |

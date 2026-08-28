@@ -148,14 +148,13 @@ for steering people into the guided flow.
 
 ## Known gaps
 
-- **Rate limiting is per-instance.** Fine for now; move to Supabase or Upstash
-  with the backend.
-- **`@anthropic-ai/sdk` is an unused dependency.** Nothing imports it since the
-  switch to Gemini; safe to remove.
-- **No province-specific harassment ombudspersons.** All workplace cases route
-  to federal FOSPAH; Punjab, Sindh, KP and Balochistan each have their own.
 - **Balochistan, GB and AJK have no confirmed local resource.** Users there see
   national numbers only until the verification pass is done.
+- **NCSW indicator descriptions and examples are English-only.** Category names
+  and all 40 indicator names are translated; the longer text is not yet.
+- **The admin uses one shared password.** Fine for a desk of a few people, and
+  each action asks who is performing it so the audit trail still names someone.
+  Supabase Auth with per-lawyer accounts is the upgrade path.
 
 ---
 
