@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
@@ -86,7 +86,29 @@ export default function AssessmentResult({
 }) {
   const { locale } = useLanguage();
   const [showReferral, setShowReferral] = useState(false);
-  const canRefer = Boolean(referralNarrative);
+  const [referralAvailable, setReferralAvailable] = useState(false);
+
+  // Only offer a referral once the legal desk is actually reachable. Asking
+  // someone for their name and phone number and then failing is worse than not
+  // offering at all, so this stays false unless the server confirms otherwise.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/refer")
+      .then((res) => (res.ok ? res.json() : { available: false }))
+      .then((data) => {
+        if (!cancelled) setReferralAvailable(Boolean(data?.available));
+      })
+      .catch(() => {
+        if (!cancelled) setReferralAvailable(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canRefer = Boolean(referralNarrative) && referralAvailable;
   const severityLabel = t(
     locale,
     SEVERITY_KEYS[data.severity] || SEVERITY_KEYS.concerning

@@ -118,6 +118,28 @@ function str(value: unknown, max: number): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
+// GET — is the pipeline actually wired up?
+// ---------------------------------------------------------------------------
+
+/**
+ * Lets the result screen decide whether to offer a referral at all. Without
+ * this the "Ask a lawyer to contact me" button would render in production
+ * before the legal desk's Sheet or inbox is connected, and every submission
+ * would fail after the person had already handed over their name and number.
+ *
+ * The CTA appears on its own once a sink is configured — there is no separate
+ * feature flag to remember to flip.
+ */
+export function GET() {
+  return NextResponse.json(
+    { available: getConfiguredSinks().length > 0 },
+    // Cheap to compute, but must not be cached across a deploy that adds the
+    // credentials, or the button would stay hidden until the cache expired.
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+// ---------------------------------------------------------------------------
 // POST
 // ---------------------------------------------------------------------------
 
