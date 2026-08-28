@@ -174,13 +174,28 @@ supabase/seed.sql                                reference data
 
 ### 3. Verify
 
-```sql
-select * from resource_coverage;
+Paste `supabase/verify.sql` into the SQL editor. It returns thirteen rows and
+every one should read `PASS`:
+
+```
+ #  | result |                           description                            |  actual
+----+--------+------------------------------------------------------------------+----------
+  1 | PASS   | provinces seeded                                                 | 7 / 7
+  2 | PASS   | legal instruments seeded                                         | 29 / 29
+  ...
+ 10 | PASS   | views run as caller (security_invoker) — protects referral_queue | 4 / 4
+ 11 | PASS   | anon cannot read referrals                                       | revoked
 ```
 
-Seven rows, Punjab with the most confirmed local resources. If the reference
-tables are empty the application detects it and falls back to the bundled data
-rather than serving an assessment with no law in it.
+A `FAIL` on rows 1–6 means the seed did not fully apply — re-run
+`supabase/seed.sql`, which is idempotent. A `FAIL` on row 10 or 11 is a security
+finding and should be fixed before the app points at the project: row 10 is the
+one that stops `referral_queue` handing every name and phone number to anyone
+holding the public anon key.
+
+If the reference tables are empty the application detects it and falls back to
+the bundled data rather than serving an assessment with no law in it, so a
+partial seed degrades safely rather than breaking.
 
 ### Regenerating the seed
 
