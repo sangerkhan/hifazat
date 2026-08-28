@@ -22,11 +22,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorised" }, { status: 401 });
   }
 
-  const client = getServiceClient();
-  if (!client) {
-    return NextResponse.json({ error: "no_database" }, { status: 503 });
-  }
-
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -42,6 +37,12 @@ export async function POST(request: Request) {
   const note = str(body.note, 500);
 
   if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+
+  // Validate before requiring a database, so a bad request is reported as one.
+  const client = getServiceClient();
+  if (!client) {
+    return NextResponse.json({ error: "no_database" }, { status: 503 });
+  }
 
   try {
     if (action === "confirm") {
