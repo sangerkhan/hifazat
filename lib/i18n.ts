@@ -165,6 +165,22 @@ export const translations = {
     aboutReadRights: "Browse your rights",
     aboutSeeResources: "See helplines and legal aid",
 
+    // Rights library
+    rightsTitle: "Know your rights",
+    rightsIntro:
+      "What Pakistani law recognises as violence and harassment, in plain language — and what you can do about each of it. Choose where you live and the law shown becomes the law that actually applies there.",
+    rightsProvincePrompt: "Where do you live?",
+    rightsNoProvince: "Not sure yet",
+    rightsThingsCount: "things this covers",
+    rightsWhatCounts: "What counts",
+    rightsLawHere: "The law in",
+    rightsLawGeneral: "The law",
+    rightsNoLaw: "No specific statute is listed for this combination. The national helplines can point you to what applies.",
+    rightsPickProvinceHint:
+      "Choose your province above and this shows the statute in force where you live. Domestic violence law is provincial, so it differs between provinces.",
+    rightsWhatYouCanDo: "What you can do",
+    rightsCtaAssess: "Check my own situation",
+
     // Footer
     footerDescription:
       "Hifazat is a non-profit project to facilitate victims of violence.",
@@ -325,6 +341,22 @@ export const translations = {
     aboutLastUpdated: "یہ صفحہ بتاتا ہے کہ اگست 2026 تک حفاظت کیسے کام کرتی ہے۔",
     aboutReadRights: "اپنے حقوق دیکھیں",
     aboutSeeResources: "ہیلپ لائنیں اور قانونی مدد دیکھیں",
+
+    // Rights library
+    rightsTitle: "اپنے حقوق جانیں",
+    rightsIntro:
+      "پاکستانی قانون کن باتوں کو تشدد اور ہراسانی تسلیم کرتا ہے، آسان زبان میں — اور آپ ہر ایک کے بارے میں کیا کر سکتی ہیں۔ اپنا علاقہ منتخب کریں تو دکھایا گیا قانون وہی ہوگا جو وہاں واقعی نافذ ہے۔",
+    rightsProvincePrompt: "آپ کہاں رہتی ہیں؟",
+    rightsNoProvince: "ابھی یقین نہیں",
+    rightsThingsCount: "باتیں اس میں شامل ہیں",
+    rightsWhatCounts: "کیا کیا شامل ہے",
+    rightsLawHere: "قانون:",
+    rightsLawGeneral: "قانون",
+    rightsNoLaw: "اس امتزاج کے لیے کوئی مخصوص قانون درج نہیں۔ قومی ہیلپ لائنیں آپ کو بتا سکتی ہیں کہ کیا لاگو ہوتا ہے۔",
+    rightsPickProvinceHint:
+      "اوپر اپنا صوبہ منتخب کریں تو یہ وہی قانون دکھائے گا جو آپ کے علاقے میں نافذ ہے۔ گھریلو تشدد کا قانون صوبائی ہے، اس لیے صوبوں میں مختلف ہوتا ہے۔",
+    rightsWhatYouCanDo: "آپ کیا کر سکتی ہیں",
+    rightsCtaAssess: "اپنی صورتحال دیکھیں",
 
     // Footer
     footerDescription:

@@ -16,9 +16,8 @@ import { t } from "@/lib/i18n";
 export default function SiteFooter({ showNav = true }: { showNav?: boolean }) {
   const { locale } = useLanguage();
 
-  // /rights is added here once the library exists — a footer link to a 404 is
-  // worse than no link.
   const links = [
+    { href: "/rights", label: t(locale, "navRights") },
     { href: "/resources", label: t(locale, "navResources") },
     { href: "/about", label: t(locale, "navAbout") },
   ];

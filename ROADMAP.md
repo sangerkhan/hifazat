@@ -86,10 +86,14 @@ lawyers, hosting, co-branding).
 - [ ] Create the project and set `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] Work the verification list in the table editor rather than by pull request
 
-### Know Your Rights library
-- [ ] `/rights` — browsable explainers per NCSW category, filtered by province
-- [ ] Legal definition, real examples, relevant law and section, action steps
-- [ ] Add to navigation; full EN/UR
+### Know Your Rights library — SHIPPED
+- [x] `/rights` — the six NCSW categories, what each covers, and the statute
+      actually in force where the reader lives
+- [x] Province selector shared with the directory, so it is chosen once
+- [x] Concrete action steps per category
+- [x] Category names, descriptions and all 40 indicator names translated to
+      Urdu; indicator descriptions and worked examples remain English and are
+      shown as such rather than omitted
 
 ### About / methodology — SHIPPED
 - [x] `/about` — how the assessment works, why province matters, sources,
