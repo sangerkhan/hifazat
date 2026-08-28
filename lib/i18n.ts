@@ -1,3 +1,12 @@
+/**
+ * Interface strings.
+ *
+ * Question and option text for the guided flow lives in `guided-flow.ts`
+ * instead, next to the branching logic that depends on it. Keeping them
+ * together is what makes it safe to reword an option: nothing matches on the
+ * label any more, only on the option ID.
+ */
+
 export type Locale = "en" | "ur";
 
 export const translations = {
@@ -30,82 +39,26 @@ export const translations = {
     assessAnalysing: "Analysing...",
     assessPrivacy: "Nothing you type is saved anywhere.",
 
-    // Guided — Gender & Province
-    guidedGender: "What is your gender?",
-    guidedGenderOpts: ["Woman", "Man", "Transgender person"],
-    guidedProvince: "Which province or territory are you in?",
-    guidedProvinceOpts: [
-      "Punjab",
-      "Sindh",
-      "Khyber Pakhtunkhwa",
-      "Balochistan",
-      "Islamabad Capital Territory",
-      "Gilgit-Baltistan",
-      "Azad Jammu & Kashmir",
-    ],
-
-    // Guided
+    // Guided flow chrome
     guidedStepOf: "Step {current} of {total}",
-    guidedQ1: "Where did this happen?",
-    guidedQ1Opts: [
-      "At home",
-      "At work",
-      "Online / digital",
-      "In public",
-      "At school or university",
-      "Other",
-    ],
-    guidedQ2: "Who did this?",
-    guidedQ2Opts: [
-      "Husband or partner",
-      "Family member",
-      "In-law",
-      "Colleague or boss",
-      "Stranger",
-      "Someone I know",
-      "Ex-partner",
-    ],
-    guidedKids: "Are children involved in this situation?",
-    guidedKidsOpts: ["Yes", "No"],
-    guidedKidsCount: "How many children?",
-    guidedKidsCountOpts: ["1", "2", "3", "4 or more"],
-    guidedIntent: "What do you want to do?",
-    guidedIntentOpts: [
-      "I want to leave with my children",
-      "I want to leave without my children",
-      "I want a khula (divorce)",
-      "I want to stay but need protection",
-    ],
-    guidedQ3: "What happened?",
-    guidedQ3Opts: [
-      "Hit, slapped, or physically hurt",
-      "Threatened me",
-      "Controlled where I go or who I talk to",
-      "Touched me without my consent",
-      "Said hurtful or degrading things",
-      "Took my money or stopped me from working",
-      "Shared my private photos or messages",
-      "Forced me into marriage",
-      "Denied my inheritance or property",
-      "Stalked or followed me",
-      "Other",
-    ],
-    guidedQ4: "How often does this happen?",
-    guidedQ4Opts: [
-      "It happened once",
-      "It happens sometimes",
-      "It happens regularly",
-      "It is happening right now",
-    ],
-    guidedQ5: "Anything else you'd like to share?",
-    guidedQ5Sub: "This is optional. You can skip this step.",
-    guidedQ5Placeholder: "Add any additional details here...",
     guidedNext: "Next",
-    guidedSubmit: "Submit",
-    guidedSkip: "Skip",
+    guidedSubmit: "Get my guidance",
+    guidedSkip: "Skip this question",
+    guidedEdit: "Change",
+    guidedTextPlaceholder: "Add anything else here...",
+    guidedReviewSubmit: "Look at my situation",
+    guidedNoAnswers: "You have not answered anything yet.",
 
-    // Assessment Result
-    resultCredibility: "Based on NCSW Standardized Indicators on Violence against Women in Pakistan",
+    // Safety interstitial
+    dangerTitle: "Your safety comes first",
+    dangerBody:
+      "If you are in danger right now, call for help before anything else. Both of these lines are free and you do not need credit on your phone.",
+    dangerContinue: "I am safe enough to continue",
+    dangerExpress: "Skip the questions — tell me what to do now",
+
+    // Result
+    resultCredibility:
+      "Based on NCSW Standardized Indicators on Violence against Women in Pakistan",
     resultRecognisedAs: "What you describe is recognised as",
     resultUnderLaw: "under Pakistani Law",
     resultUrgent: "Your safety is the priority.",
@@ -128,13 +81,77 @@ export const translations = {
       "This will lead you to the complaint registration page where you can take your first line of action.",
     resultNewAssessment: "Start a new assessment",
 
-    // Resources page
+    // Resources directory
     resourcesHeading: "Resources",
     resourcesSubtext: "Helplines, legal aid, and support organisations",
+    resourcesFilterProvince: "Where are you?",
+    resourcesFilterAll: "All of Pakistan",
+    resourcesFilterType: "Type of help",
+    resourcesFilterAllTypes: "Everything",
+    resourcesSearchPlaceholder: "Search by name or what they do",
+    resourcesNoResults:
+      "Nothing matches those filters. Try clearing the search, or choose “All of Pakistan”.",
+    resourcesCount: "{count} organisations",
+    resourcesNationwide: "Nationwide",
+    resourcesUnverifiedHeading: "Also in your area",
+    resourcesUnverifiedNote:
+      "These organisations work in your area, but we are still confirming their current contact details, so we are not listing a number we cannot stand behind. Reach them through their website, or call 1099 and ask to be connected.",
+    resourcesWhatsapp: "WhatsApp",
+    resourcesEmail: "Email",
+    resourcesWebsite: "Visit website",
     resourceTypeEmergency: "Emergency",
+    resourceTypePolice: "Police",
     resourceTypeGovernment: "Government",
     resourceTypeNgo: "NGO",
     resourceTypeLegalAid: "Legal Aid",
+    resourceTypeShelter: "Shelter",
+    resourceTypeCyber: "Online / Cyber",
+    resourceTypeCounselling: "Counselling",
+    resourceTypeChild: "Children",
+
+    // Lawyer referral
+    referralCtaTitle: "Would you like a lawyer to contact you?",
+    referralCtaBody:
+      "We can pass your situation to a lawyer in our partner network who works on cases like yours. It is free, and they will contact you directly.",
+    referralCtaButton: "Ask a lawyer to contact me",
+    referralHeading: "Ask a lawyer to contact you",
+    referralIntro:
+      "A lawyer from our partner network will look at your situation and contact you directly. There is no charge for this first contact.",
+    referralName: "Your name",
+    referralNamePlaceholder: "What should the lawyer call you?",
+    referralNameHelp: "A first name is enough. You do not have to give your real name.",
+    referralPhone: "Phone number",
+    referralPhonePlaceholder: "03XX XXXXXXX",
+    referralPhoneHelp: "This is how the lawyer will reach you.",
+    referralSafeToCall: "Is it safe for us to call this number?",
+    referralSafeYes: "Yes, I can take a call",
+    referralSafeNo: "No — message me first, do not call",
+    referralSafeHelp:
+      "If someone else can see your phone or hear your calls, choose the second option.",
+    referralBestTime: "When is the safest time to reach you?",
+    referralTimeAny: "Any time",
+    referralTimeMorning: "Morning",
+    referralTimeAfternoon: "Afternoon",
+    referralTimeEvening: "Evening",
+    referralCity: "Your city or district",
+    referralCityPlaceholder: "So we can match you with a lawyer nearby",
+    referralConsent:
+      "I agree that Hifazat may share what I have described with a lawyer in its partner network so that they can contact me.",
+    referralConsentRequired: "Please tick the box so we can pass your case on.",
+    referralSubmit: "Send to a lawyer",
+    referralSubmitting: "Sending...",
+    referralCancel: "Not right now",
+    referralRequiredFields: "Please fill in your name and a phone number.",
+    referralInvalidPhone: "That does not look like a Pakistani phone number.",
+    referralError: "We could not send that. Please try again in a moment.",
+    referralSuccessTitle: "Sent to the legal desk",
+    referralSuccessBody:
+      "A lawyer who works on this kind of case will contact you. Keep your reference number in case you need to follow up.",
+    referralReference: "Your reference",
+    referralSuccessSafety:
+      "If your situation gets worse before they reach you, call 15 or 1099 straight away.",
+    referralPrivacy:
+      "We pass on your answers, your name and your number, and nothing else. We do not keep a copy after it reaches the legal desk.",
 
     // Footer
     footerDescription:
@@ -172,81 +189,24 @@ export const translations = {
     assessAnalysing: "تجزیہ ہو رہا ہے...",
     assessPrivacy: "آپ جو کچھ بھی لکھیں وہ کہیں محفوظ نہیں ہوتا۔",
 
-    // Guided — Gender & Province
-    guidedGender: "آپ کی صنف کیا ہے؟",
-    guidedGenderOpts: ["خاتون", "مرد", "ٹرانسجینڈر"],
-    guidedProvince: "آپ کس صوبے یا علاقے میں ہیں؟",
-    guidedProvinceOpts: [
-      "پنجاب",
-      "سندھ",
-      "خیبر پختونخوا",
-      "بلوچستان",
-      "اسلام آباد وفاقی دارالحکومت",
-      "گلگت بلتستان",
-      "آزاد جموں و کشمیر",
-    ],
-
-    // Guided
+    // Guided flow chrome
     guidedStepOf: "مرحلہ {current} از {total}",
-    guidedQ1: "یہ کہاں ہوا؟",
-    guidedQ1Opts: [
-      "گھر میں",
-      "کام کی جگہ پر",
-      "آن لائن / ڈیجیٹل",
-      "عوامی جگہ پر",
-      "اسکول یا یونیورسٹی میں",
-      "کوئی اور جگہ",
-    ],
-    guidedQ2: "یہ کس نے کیا؟",
-    guidedQ2Opts: [
-      "شوہر یا پارٹنر",
-      "خاندان کا فرد",
-      "سسرال والے",
-      "ساتھی یا باس",
-      "اجنبی",
-      "کوئی جاننے والا",
-      "سابق پارٹنر",
-    ],
-    guidedKids: "کیا اس صورتحال میں بچے شامل ہیں؟",
-    guidedKidsOpts: ["ہاں", "نہیں"],
-    guidedKidsCount: "کتنے بچے ہیں؟",
-    guidedKidsCountOpts: ["1", "2", "3", "4 یا زیادہ"],
-    guidedIntent: "آپ کیا کرنا چاہتی ہیں؟",
-    guidedIntentOpts: [
-      "میں اپنے بچوں کے ساتھ جانا چاہتی ہوں",
-      "میں بچوں کے بغیر جانا چاہتی ہوں",
-      "میں خلع چاہتی ہوں",
-      "میں رہنا چاہتی ہوں لیکن تحفظ چاہیے",
-    ],
-    guidedQ3: "کیا ہوا؟",
-    guidedQ3Opts: [
-      "مارا، تھپڑ مارا، یا جسمانی تکلیف دی",
-      "دھمکی دی",
-      "میرے جانے یا بات کرنے پر پابندی لگائی",
-      "میری مرضی کے بغیر چھوا",
-      "تکلیف دہ یا ذلت آمیز باتیں کیں",
-      "میرے پیسے لے لیے یا کام سے روکا",
-      "میری نجی تصاویر یا پیغامات شیئر کیے",
-      "زبردستی شادی کرائی",
-      "وراثت یا جائیداد سے محروم کیا",
-      "پیچھا کیا یا تعاقب کیا",
-      "کوئی اور بات",
-    ],
-    guidedQ4: "یہ کتنی بار ہوتا ہے؟",
-    guidedQ4Opts: [
-      "ایک بار ہوا",
-      "کبھی کبھی ہوتا ہے",
-      "باقاعدگی سے ہوتا ہے",
-      "ابھی ہو رہا ہے",
-    ],
-    guidedQ5: "کچھ اور بتانا چاہتے ہیں؟",
-    guidedQ5Sub: "یہ اختیاری ہے۔ آپ یہ مرحلہ چھوڑ سکتے ہیں۔",
-    guidedQ5Placeholder: "کوئی اضافی تفصیلات یہاں لکھیں...",
     guidedNext: "اگلا",
-    guidedSubmit: "جمع کرائیں",
-    guidedSkip: "چھوڑیں",
+    guidedSubmit: "میری رہنمائی دیکھیں",
+    guidedSkip: "یہ سوال چھوڑ دیں",
+    guidedEdit: "تبدیل کریں",
+    guidedTextPlaceholder: "کوئی اور بات یہاں لکھیں...",
+    guidedReviewSubmit: "میری صورتحال کا جائزہ لیں",
+    guidedNoAnswers: "آپ نے ابھی کوئی جواب نہیں دیا۔",
 
-    // Assessment Result
+    // Safety interstitial
+    dangerTitle: "آپ کی حفاظت سب سے پہلے",
+    dangerBody:
+      "اگر آپ اس وقت خطرے میں ہیں تو سب سے پہلے مدد کے لیے کال کریں۔ یہ دونوں نمبر مفت ہیں اور ان کے لیے فون میں بیلنس کی ضرورت نہیں۔",
+    dangerContinue: "میں سوالات جاری رکھ سکتی/سکتا ہوں",
+    dangerExpress: "سوالات چھوڑیں — مجھے ابھی بتائیں کہ کیا کرنا ہے",
+
+    // Result
     resultCredibility: "پاکستان میں تشدد کے خلاف NCSW کے معیاری اشاریوں پر مبنی",
     resultRecognisedAs: "آپ نے جو بیان کیا ہے وہ تسلیم شدہ ہے بطور",
     resultUnderLaw: "پاکستانی قانون کے تحت",
@@ -270,13 +230,77 @@ export const translations = {
       "یہ آپ کو شکایت درج کرانے کے صفحے پر لے جائے گا جہاں آپ اپنا پہلا قدم اٹھا سکتے ہیں۔",
     resultNewAssessment: "نیا جائزہ شروع کریں",
 
-    // Resources page
+    // Resources directory
     resourcesHeading: "وسائل",
     resourcesSubtext: "ہیلپ لائنز، قانونی مدد، اور معاون ادارے",
+    resourcesFilterProvince: "آپ کہاں ہیں؟",
+    resourcesFilterAll: "پورا پاکستان",
+    resourcesFilterType: "کس قسم کی مدد",
+    resourcesFilterAllTypes: "سب کچھ",
+    resourcesSearchPlaceholder: "نام یا کام کے لحاظ سے تلاش کریں",
+    resourcesNoResults:
+      "ان فلٹرز سے کچھ نہیں ملا۔ تلاش صاف کریں، یا ”پورا پاکستان“ منتخب کریں۔",
+    resourcesCount: "{count} ادارے",
+    resourcesNationwide: "ملک بھر میں",
+    resourcesUnverifiedHeading: "آپ کے علاقے میں مزید",
+    resourcesUnverifiedNote:
+      "یہ ادارے آپ کے علاقے میں کام کرتے ہیں، لیکن ہم ان کے موجودہ رابطہ نمبروں کی تصدیق کر رہے ہیں، اس لیے ہم ایسا نمبر نہیں دے رہے جس کی ذمہ داری ہم نہ لے سکیں۔ ان کی ویب سائٹ کے ذریعے رجوع کریں، یا 1099 پر کال کر کے رابطہ کروانے کو کہیں۔",
+    resourcesWhatsapp: "واٹس ایپ",
+    resourcesEmail: "ای میل",
+    resourcesWebsite: "ویب سائٹ دیکھیں",
     resourceTypeEmergency: "ایمرجنسی",
+    resourceTypePolice: "پولیس",
     resourceTypeGovernment: "سرکاری",
     resourceTypeNgo: "این جی او",
     resourceTypeLegalAid: "قانونی مدد",
+    resourceTypeShelter: "پناہ گاہ",
+    resourceTypeCyber: "آن لائن / سائبر",
+    resourceTypeCounselling: "کاؤنسلنگ",
+    resourceTypeChild: "بچے",
+
+    // Lawyer referral
+    referralCtaTitle: "کیا آپ چاہتی/چاہتے ہیں کہ کوئی وکیل آپ سے رابطہ کرے؟",
+    referralCtaBody:
+      "ہم آپ کی صورتحال ہمارے پارٹنر نیٹ ورک کے ایسے وکیل تک پہنچا سکتے ہیں جو ایسے مقدمات دیکھتا ہو۔ یہ مفت ہے، اور وہ آپ سے براہِ راست رابطہ کریں گے۔",
+    referralCtaButton: "وکیل سے رابطہ کروائیں",
+    referralHeading: "وکیل سے رابطہ کروائیں",
+    referralIntro:
+      "ہمارے پارٹنر نیٹ ورک کا ایک وکیل آپ کی صورتحال دیکھ کر آپ سے براہِ راست رابطہ کرے گا۔ اس پہلے رابطے کی کوئی فیس نہیں۔",
+    referralName: "آپ کا نام",
+    referralNamePlaceholder: "وکیل آپ کو کس نام سے پکارے؟",
+    referralNameHelp: "صرف پہلا نام کافی ہے۔ اصل نام دینا ضروری نہیں۔",
+    referralPhone: "فون نمبر",
+    referralPhonePlaceholder: "03XX XXXXXXX",
+    referralPhoneHelp: "وکیل اسی نمبر پر آپ سے رابطہ کرے گا۔",
+    referralSafeToCall: "کیا اس نمبر پر کال کرنا آپ کے لیے محفوظ ہے؟",
+    referralSafeYes: "ہاں، میں کال سن سکتی/سکتا ہوں",
+    referralSafeNo: "نہیں — پہلے پیغام بھیجیں، کال نہ کریں",
+    referralSafeHelp:
+      "اگر کوئی اور آپ کا فون دیکھ سکتا ہے یا آپ کی کالیں سن سکتا ہے تو دوسرا آپشن منتخب کریں۔",
+    referralBestTime: "آپ سے رابطے کا محفوظ ترین وقت کون سا ہے؟",
+    referralTimeAny: "کوئی بھی وقت",
+    referralTimeMorning: "صبح",
+    referralTimeAfternoon: "دوپہر",
+    referralTimeEvening: "شام",
+    referralCity: "آپ کا شہر یا ضلع",
+    referralCityPlaceholder: "تاکہ ہم قریبی وکیل سے رابطہ کروا سکیں",
+    referralConsent:
+      "میں اجازت دیتی/دیتا ہوں کہ حفاظت میری بیان کردہ تفصیلات اپنے پارٹنر نیٹ ورک کے وکیل کو دے تاکہ وہ مجھ سے رابطہ کر سکیں۔",
+    referralConsentRequired: "براہِ کرم خانے پر نشان لگائیں تاکہ ہم آپ کا معاملہ آگے بھیج سکیں۔",
+    referralSubmit: "وکیل کو بھیجیں",
+    referralSubmitting: "بھیجا جا رہا ہے...",
+    referralCancel: "ابھی نہیں",
+    referralRequiredFields: "براہِ کرم اپنا نام اور فون نمبر لکھیں۔",
+    referralInvalidPhone: "یہ پاکستانی فون نمبر نہیں لگتا۔",
+    referralError: "ہم اسے بھیج نہیں سکے۔ براہِ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔",
+    referralSuccessTitle: "لیگل ڈیسک کو بھیج دیا گیا",
+    referralSuccessBody:
+      "ایسے مقدمات دیکھنے والا وکیل آپ سے رابطہ کرے گا۔ اپنا حوالہ نمبر محفوظ رکھیں تاکہ ضرورت پڑنے پر پوچھ سکیں۔",
+    referralReference: "آپ کا حوالہ نمبر",
+    referralSuccessSafety:
+      "اگر ان کے رابطے سے پہلے آپ کی صورتحال بگڑ جائے تو فوراً 15 یا 1099 پر کال کریں۔",
+    referralPrivacy:
+      "ہم صرف آپ کے جوابات، آپ کا نام اور نمبر بھیجتے ہیں، اس کے علاوہ کچھ نہیں۔ لیگل ڈیسک تک پہنچنے کے بعد ہم اس کی نقل نہیں رکھتے۔",
 
     // Footer
     footerDescription:
@@ -289,19 +313,15 @@ export const translations = {
 export type TranslationKey = keyof typeof translations.en;
 
 export function t(locale: Locale, key: TranslationKey): string {
-  const value = translations[locale][key];
-  if (typeof value === "string") return value;
-  return String(value);
-}
-
-export function tArray(locale: Locale, key: TranslationKey): string[] {
-  const value = translations[locale][key];
-  if (Array.isArray(value)) return value as string[];
-  return [];
+  return translations[locale][key];
 }
 
 export function tStep(locale: Locale, current: number, total: number): string {
   return t(locale, "guidedStepOf")
     .replace("{current}", String(current))
     .replace("{total}", String(total));
+}
+
+export function tCount(locale: Locale, key: TranslationKey, count: number): string {
+  return t(locale, key).replace("{count}", String(count));
 }

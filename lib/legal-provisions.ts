@@ -90,12 +90,6 @@ export const LEGAL_PROVISIONS = {
       plain: "Rape — death or 10-25 years imprisonment. Gang rape carries death penalty or life imprisonment.",
       severity: "critical",
     },
-    "489": {
-      section: "489",
-      title: "Conjugal rights / domestic provisions",
-      plain: "Relevant to marital disputes and maintenance obligations",
-      severity: "serious",
-    },
     "496-A": {
       section: "496-A",
       title: "Enticing or taking away woman",
@@ -104,9 +98,17 @@ export const LEGAL_PROVISIONS = {
     },
     "498-A": {
       section: "498-A",
-      title: "Cruelty to wife",
-      plain: "Husband or in-laws subjecting a woman to cruelty — used in domestic violence and dowry cases",
+      title: "Depriving a woman of her inheritance",
+      plain:
+        "Depriving a woman of her inheritance by deceitful or illegal means — 5 to 10 years, or a fine of PKR 1 million, or both. Note this is NOT the Indian Section 498-A, which concerns cruelty by a husband; the Pakistani provision is about inheritance.",
       severity: "serious",
+    },
+    "498-B": {
+      section: "498-B",
+      title: "Forced marriage",
+      plain:
+        "Compelling a woman to marry against her will — 3 to 10 years and a fine of PKR 500,000",
+      severity: "critical",
     },
     "509": {
       section: "509",
@@ -161,33 +163,55 @@ export const LEGAL_PROVISIONS = {
 
   domestic_violence: {
     act: "Domestic Violence (Prevention and Protection) Act 2012",
-    scope: "Federal — applies to all genders",
+    scope:
+      "Islamabad Capital Territory ONLY. Domestic violence is a devolved subject after the 18th Amendment, so this act does not extend to the provinces — each has passed its own. Do not cite it for someone outside Islamabad.",
     provisions:
-      "Covers physical, sexual, psychological, and economic violence within domestic relationships. Victims can obtain protection orders from a court. Applies to ALL household members regardless of gender.",
-    gender_note: "This act is gender-neutral and protects men and transgender persons as well.",
+      "Covers physical, sexual, psychological, and economic violence within domestic relationships. Protection, residence and monetary orders are available from the Court of Magistrate.",
+    gender_note:
+      "This act is gender-neutral and protects men and transgender household members as well.",
   },
 
   provincial_laws: {
+    note: "There is no national domestic violence statute. Each entry below applies only within its own province.",
     punjab: {
       act: "Punjab Protection of Women against Violence Act 2016",
       scope: "Punjab only — women only",
       provisions:
-        "Establishes VAW centres, toll-free helpline (1043), protection system for women. Covers physical, sexual, psychological, economic violence and stalking.",
+        "Establishes Violence Against Women Centres and the toll-free 1043 helpline. Covers physical, sexual, psychological and economic violence, and stalking.",
       helpline: "1043",
     },
     sindh: {
-      act: "Sindh Child Marriage Restraint Act 2013",
+      acts: [
+        "Sindh Domestic Violence (Prevention and Protection) Act 2013",
+        "Sindh Child Marriages Restraint Act 2013",
+      ],
       scope: "Sindh only",
-      provisions: "Minimum marriage age raised to 18 for both boys and girls in Sindh.",
+      provisions:
+        "Sindh has its own domestic violence statute providing protection, residence and monetary orders, and is the only province where the minimum marriage age is 18 for both parties.",
     },
     kpk: {
-      note: "KPK follows federal laws. The Domestic Violence Act 2012 applies.",
+      act: "Khyber Pakhtunkhwa Domestic Violence against Women (Prevention and Protection) Act 2021",
+      scope: "Khyber Pakhtunkhwa only",
+      provisions:
+        "KP has its own domestic violence statute. Also relevant: the KP Elimination of the Custom of Ghag Act 2013 and the KP Enforcement of Women's Property Rights Act 2019.",
     },
     balochistan: {
-      note: "Balochistan follows federal laws. Limited province-specific legislation on VAW.",
+      act: "Balochistan Domestic Violence (Prevention and Protection) Act 2014",
+      scope: "Balochistan only",
+      provisions:
+        "Provides for protection orders, residence orders and monetary relief. Formal support services in the province are limited, so national helplines are often the faster route.",
     },
     islamabad: {
-      note: "Islamabad Capital Territory follows all federal laws directly including Domestic Violence Act 2012 and Women's Property Rights Act 2020.",
+      acts: [
+        "Domestic Violence (Prevention and Protection) Act 2012",
+        "Enforcement of Women's Property Rights Act 2020",
+      ],
+      scope: "Islamabad Capital Territory only",
+      provisions:
+        "Both of these are commonly described as federal but operate only in the Capital Territory.",
+    },
+    gb_ajk: {
+      note: "Gilgit-Baltistan and Azad Jammu & Kashmir have their own legislative arrangements. Do not assume a provincial or federal statute extends there without confirmation; rely on Penal Code provisions and national helplines.",
     },
   },
 

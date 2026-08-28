@@ -21,17 +21,30 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
 
+  // The saved language cannot be read during server rendering, so the first
+  // paint is always English and we correct it on mount. That is a deliberate
+  // one-time sync from an external store rather than a cascading render, which
+  // is why the set-state-in-effect rule is suppressed here rather than obeyed.
   useEffect(() => {
-    const saved = localStorage.getItem("hifazat-lang") as Locale | null;
-    if (saved === "en" || saved === "ur") {
-      setLocaleState(saved);
+    try {
+      const saved = localStorage.getItem("hifazat-lang") as Locale | null;
+      if (saved === "en" || saved === "ur") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLocaleState(saved);
+      }
+    } catch {
+      // Private browsing or blocked storage — English is a fine default.
     }
     setMounted(true);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem("hifazat-lang", newLocale);
+    try {
+      localStorage.setItem("hifazat-lang", newLocale);
+    } catch {
+      // The choice still applies for this session even if it cannot persist.
+    }
   };
 
   const isUrdu = locale === "ur";

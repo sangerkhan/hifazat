@@ -1,56 +1,77 @@
 import { NextResponse } from "next/server";
-import { buildSystemPrompt } from "@/lib/system-prompt";
+import { buildSystemPrompt, type PromptContext } from "@/lib/system-prompt";
+import { getResources } from "@/lib/resources";
+import {
+  PROVINCE_IDS,
+  type CaseCategory,
+  type Gender,
+  type ProvinceId,
+} from "@/lib/provinces";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-];
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
+const VALID_GENDERS: Gender[] = ["woman", "man", "transgender", "unspecified"];
+const VALID_CATEGORIES: CaseCategory[] = [
+  "domestic",
+  "sexual",
+  "cyber",
+  "workplace",
+  "harmful_practice",
+  "economic",
+  "child",
+  "family_law",
+  "physical",
+  "other",
+];
+const VALID_RELATIONSHIPS = [
+  "spousal",
+  "family",
+  "workplace",
+  "online",
+  "other",
+  "unknown",
+] as const;
+
 // ---------------------------------------------------------------------------
-// JSON parsing helper — handles both raw JSON and markdown-fenced JSON
+// Parsing and validation
 // ---------------------------------------------------------------------------
-function parseClaudeJSON(raw: string): Record<string, unknown> | null {
+
+function parseModelJSON(raw: string): Record<string, unknown> | null {
   const trimmed = raw.trim();
 
-  // Try direct parse
   try {
     return JSON.parse(trimmed);
   } catch {
-    // ignore
+    // fall through to the fenced form
   }
 
-  // Try stripping markdown code fences
   const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
   if (fenceMatch) {
     try {
       return JSON.parse(fenceMatch[1].trim());
     } catch {
-      // ignore
+      // fall through
     }
   }
 
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Validate the parsed response matches the AssessmentData shape
-// ---------------------------------------------------------------------------
 function isValidAssessment(data: unknown): boolean {
   if (!data || typeof data !== "object") return false;
   const d = data as Record<string, unknown>;
 
   if (typeof d.is_urgent !== "boolean") return false;
   if (typeof d.validation !== "string") return false;
-  if (!["concerning", "serious", "critical"].includes(d.severity as string))
+  if (!["concerning", "serious", "critical"].includes(d.severity as string)) {
     return false;
-  if (!Array.isArray(d.classifications) || d.classifications.length === 0)
-    return false;
+  }
+  if (!Array.isArray(d.classifications) || d.classifications.length === 0) return false;
   if (!Array.isArray(d.actions) || d.actions.length === 0) return false;
   if (!Array.isArray(d.resources) || d.resources.length === 0) return false;
 
-  // Validate primary_action if present (not required for backward compat)
   if (d.primary_action) {
     const pa = d.primary_action as Record<string, unknown>;
     if (!["call", "link"].includes(pa.type as string)) return false;
@@ -61,365 +82,230 @@ function isValidAssessment(data: unknown): boolean {
   return true;
 }
 
-// ---------------------------------------------------------------------------
-// Fallback — keyword-based hardcoded responses (used if AI call fails)
-// ---------------------------------------------------------------------------
-function getFallbackResponse(input: string) {
-  const inputLower = input.toLowerCase();
+/**
+ * The context arrives from the client, so nothing in it is trusted. Anything
+ * unrecognised is dropped rather than passed through — an unknown province
+ * would otherwise flow into the prompt as free text.
+ */
+function sanitiseContext(raw: unknown): PromptContext {
+  if (!raw || typeof raw !== "object") return {};
+  const c = raw as Record<string, unknown>;
+  const ctx: PromptContext = {};
 
-  if (
-    inputLower.includes("hit") ||
-    inputLower.includes("slap") ||
-    inputLower.includes("beat") ||
-    inputLower.includes("hurt") ||
-    inputLower.includes("physical")
-  ) {
-    return {
-      is_urgent: false,
-      validation:
-        "What you have described is recognised as physical violence under Pakistani law. No one has the right to hit you, no matter the circumstances. Your feelings are completely valid, and you deserve to be safe.",
-      classifications: [
-        {
-          category_id: "physical",
-          category_name: "Physical Violence",
-          indicator_id: "phys_01",
-          indicator_name: "Hitting, slapping, kicking, punching, or beating",
-          explanation:
-            "Being hit or slapped by someone — whether a spouse, family member, or anyone else — is a criminal offence in Pakistan. This is not a private family matter; it is violence, and the law recognises it as such.",
-          legal_reference:
-            "Pakistan Penal Code Sections 332-337 (Hurt); Punjab Protection of Women against Violence Act 2016, Section 2(o)(1)",
-        },
-        {
-          category_id: "psychological",
-          category_name: "Psychological / Emotional Violence",
-          indicator_id: "psych_02",
-          indicator_name: "Threats of violence, harm, or abandonment",
-          explanation:
-            "Physical violence is almost always accompanied by psychological harm — the fear, the anxiety, the feeling of being trapped. This too is recognised as a form of violence under Pakistani law.",
-          legal_reference:
-            "Domestic Violence (Prevention and Protection) Act 2012",
-        },
-      ],
-      severity: "serious",
-      severity_explanation:
-        "Physical violence of any kind is classified as serious. It constitutes a defined criminal offence and formal action is strongly recommended.",
-      actions: [
-        {
-          step: "Document what happened",
-          details:
-            "Write down dates, times, and details of each incident. If you have any injuries, take photographs. Keep this record somewhere safe — with a trusted friend or in a private online account.",
-          priority: "immediate",
-        },
-        {
-          step: "Tell someone you trust",
-          details:
-            "Confide in a family member, friend, or neighbour you trust. Having someone who knows your situation can be critical for your safety.",
-          priority: "immediate",
-        },
-        {
-          step: "Call the Punjab Women's Helpline (1043)",
-          details:
-            "This helpline has all-women call agents who can provide confidential counseling and guide you on your legal options. Available 24/7.",
-          priority: "short_term",
-        },
-        {
-          step: "Consult a legal aid organisation",
-          details:
-            "Contact AGHS Legal Aid Cell (0800-00123) for free legal advice about your options — including protection orders under the Punjab Protection of Women against Violence Act.",
-          priority: "longer_term",
-        },
-      ],
-      resources: [
-        {
-          name: "Punjab Women's Helpline (PCSW)",
-          phone: "1043",
-          why: "24/7 helpline with all-women call agents who specialise in violence against women cases.",
-        },
-        {
-          name: "Ministry of Human Rights Helpline",
-          phone: "1099",
-          why: "Can provide free legal advice and connect you with local support services.",
-        },
-        {
-          name: "AGHS Legal Aid Cell",
-          phone: "0800-00123",
-          why: "Free legal aid to help you understand your rights and obtain a protection order if needed.",
-        },
-      ],
-      note: "You are not alone, and what happened to you is not your fault. Many women in Pakistan have successfully sought help and protection through these channels.",
-      primary_action: {
-        type: "call",
-        label: "Call Punjab Women's Helpline (1043)",
-        value: "1043",
-        description:
-          "24/7 helpline with all-women call agents who specialise in violence against women cases.",
-      },
-    };
+  if (typeof c.gender === "string" && VALID_GENDERS.includes(c.gender as Gender)) {
+    ctx.gender = c.gender as Gender;
   }
 
   if (
-    inputLower.includes("threat") ||
-    inputLower.includes("kill") ||
-    inputLower.includes("honour") ||
-    inputLower.includes("honor") ||
-    inputLower.includes("danger")
+    typeof c.province === "string" &&
+    PROVINCE_IDS.includes(c.province as ProvinceId)
   ) {
-    return {
-      is_urgent: true,
-      validation:
-        "What you are describing sounds extremely dangerous. Threats to your life — especially in the name of so-called honour — are a serious criminal offence in Pakistan. Your safety is the absolute priority right now.",
-      classifications: [
-        {
-          category_id: "harmful_traditional",
-          category_name: "Harmful Traditional Practices",
-          indicator_id: "trad_01",
-          indicator_name: "Honour killing (karo-kari) or threats",
-          explanation:
-            "Threats to harm or kill someone in the name of 'honour' are a criminal offence under Pakistani law. The 2016 amendment specifically closed loopholes that previously allowed families to forgive perpetrators. These threats must be taken seriously.",
-          legal_reference:
-            "Criminal Law (Amendment) (Offences in the name or pretext of Honour) Act 2016",
-        },
-      ],
-      severity: "critical",
-      severity_explanation:
-        "Any threat to life, especially honour-based threats, is classified as critical. There is immediate danger and emergency action is required.",
-      actions: [
-        {
-          step: "Get to a safe location immediately",
-          details:
-            "If you are in immediate danger, leave the environment if you can. Go to a trusted neighbour, friend, or public place.",
-          priority: "immediate",
-        },
-        {
-          step: "Call the Police (15)",
-          details:
-            "Report the threats immediately. Under the 2016 law, honour-based threats are a criminal offence. You can request police protection.",
-          priority: "immediate",
-        },
-        {
-          step: "Call the Human Rights helpline (1099)",
-          details:
-            "They can provide immediate guidance, connect you with shelters, and help coordinate protection.",
-          priority: "immediate",
-        },
-      ],
-      resources: [
-        {
-          name: "Police Emergency",
-          phone: "15",
-          why: "For immediate police intervention and protection from threats to your life.",
-        },
-        {
-          name: "Ministry of Human Rights Helpline",
-          phone: "1099",
-          why: "Can coordinate emergency protection, shelter placement, and legal action.",
-        },
-        {
-          name: "Bedari",
-          phone: "0300-525-1717",
-          why: "Can help with shelter referrals and legal aid for women facing honour-based violence.",
-        },
-      ],
-      note: "Please take these threats seriously. You deserve to live free from fear.",
-      primary_action: {
-        type: "call",
-        label: "Call Police (15)",
-        value: "15",
-        description:
-          "For immediate police intervention and protection from threats to your life.",
-      },
-    };
+    ctx.province = c.province as ProvinceId;
+  }
+
+  if (Array.isArray(c.categories)) {
+    const categories = c.categories.filter(
+      (x): x is CaseCategory =>
+        typeof x === "string" && VALID_CATEGORIES.includes(x as CaseCategory),
+    );
+    if (categories.length) ctx.categories = categories;
   }
 
   if (
-    inputLower.includes("online") ||
-    inputLower.includes("photo") ||
-    inputLower.includes("blackmail") ||
-    inputLower.includes("cyber") ||
-    inputLower.includes("message") ||
-    inputLower.includes("share")
+    typeof c.relationship === "string" &&
+    (VALID_RELATIONSHIPS as readonly string[]).includes(c.relationship)
   ) {
-    return {
-      is_urgent: false,
-      validation:
-        "What you have described is recognised as cyber violence under Pakistani law. Sharing or threatening to share someone's private images, harassing them online, or blackmailing them digitally are all criminal offences. You have done nothing wrong.",
-      classifications: [
-        {
-          category_id: "cyber",
-          category_name: "Cyber Violence / Technology-Facilitated VAW",
-          indicator_id: "cyber_01",
-          indicator_name:
-            "Non-consensual sharing of intimate images or videos",
-          explanation:
-            "Sharing or threatening to share private images without consent is a serious crime under Pakistan's cyber crime laws. The person doing this is committing a criminal offence — not you.",
-          legal_reference:
-            "Prevention of Electronic Crimes Act (PECA) 2016",
-        },
-        {
-          category_id: "cyber",
-          category_name: "Cyber Violence / Technology-Facilitated VAW",
-          indicator_id: "cyber_03",
-          indicator_name: "Digital blackmail or sextortion",
-          explanation:
-            "Using private information or images to pressure, extort, or control someone is blackmail — a criminal offence that carries serious penalties under Pakistani law.",
-          legal_reference:
-            "Prevention of Electronic Crimes Act (PECA) 2016, Section 24",
-        },
-      ],
-      severity: "serious",
-      severity_explanation:
-        "Digital blackmail and non-consensual image sharing are serious criminal offences. Formal action through FIA Cyber Crime is strongly recommended.",
-      actions: [
-        {
-          step: "Do NOT delete evidence",
-          details:
-            "Take screenshots of all threatening messages, profiles, and shared content. Save them somewhere safe. This will be critical evidence.",
-          priority: "immediate",
-        },
-        {
-          step: "Report to FIA Cyber Crime (1991)",
-          details:
-            "Call the FIA Cyber Crime helpline or visit their nearest office. They handle all online harassment, blackmail, and image-sharing cases. You can also report at complaint.fia.gov.pk.",
-          priority: "immediate",
-        },
-        {
-          step: "Contact Digital Rights Foundation",
-          details:
-            "Call their free helpline at 0800-39393. They specialise in online harassment and can guide you through the reporting process step by step.",
-          priority: "short_term",
-        },
-      ],
-      resources: [
-        {
-          name: "FIA Cyber Crime Reporting",
-          phone: "1991",
-          why: "The official government body for reporting cyber crimes including blackmail and non-consensual image sharing.",
-        },
-        {
-          name: "Digital Rights Foundation",
-          phone: "0800-39393",
-          why: "Free helpline specialising in online harassment — they can guide you through the entire process.",
-        },
-        {
-          name: "Ministry of Human Rights Helpline",
-          phone: "1099",
-          why: "Can provide additional legal guidance and connect you with support services.",
-        },
-      ],
-      note: "You are not to blame for someone else's criminal behaviour. Many women have successfully had content removed and perpetrators prosecuted through these channels.",
-      primary_action: {
-        type: "link",
-        label: "Report to FIA Cyber Crime",
-        value: "https://complaint.fia.gov.pk/",
-        description:
-          "File a complaint with the FIA Cyber Crime Wing for online harassment and blackmail.",
-      },
-    };
+    ctx.relationship = c.relationship as PromptContext["relationship"];
   }
 
-  // Default response
-  return {
-    is_urgent: false,
-    validation:
-      "Thank you for sharing what happened. What you have described may constitute a form of violence or harassment recognised under Pakistani law. Your feelings are valid, and you have every right to seek help and support.",
-    classifications: [
-      {
-        category_id: "psychological",
-        category_name: "Psychological / Emotional Violence",
-        indicator_id: "psych_01",
-        indicator_name: "Verbal abuse — insults, humiliation, belittling",
-        explanation:
-          "Repeated verbal abuse, insults, and humiliation are recognised as psychological violence under Pakistani law. This includes any behaviour designed to undermine your self-worth or make you feel powerless.",
-        legal_reference:
-          "Punjab Protection of Women against Violence Act 2016, Section 2(o)(2); Domestic Violence (Prevention and Protection) Act 2012",
-      },
-      {
-        category_id: "psychological",
-        category_name: "Psychological / Emotional Violence",
-        indicator_id: "psych_03",
-        indicator_name:
-          "Controlling behaviour — isolation from family and friends",
-        explanation:
-          "Being restricted from seeing family, using a phone, working, or moving freely are all forms of controlling behaviour that constitute psychological violence under the law.",
-        legal_reference:
-          "Domestic Violence (Prevention and Protection) Act 2012",
-      },
-    ],
-    severity: "concerning",
-    severity_explanation:
-      "Your situation is not okay. While it may not involve immediate physical danger, the behaviour you described is recognised as harmful and action is recommended.",
-    actions: [
-      {
-        step: "Recognise that this is not normal",
-        details:
-          "What you are experiencing is recognised by law as a form of violence. You are not overreacting, and you are not alone.",
-        priority: "immediate",
-      },
-      {
-        step: "Talk to someone you trust",
-        details:
-          "Share what you are going through with a trusted friend, family member, or counselor. Breaking the silence is often the first step.",
-        priority: "immediate",
-      },
-      {
-        step: "Call a helpline for guidance",
-        details:
-          "The Ministry of Human Rights helpline (1099) or Punjab Women's Helpline (1043) can provide free, confidential counseling and guide you on next steps.",
-        priority: "short_term",
-      },
-      {
-        step: "Learn about your legal rights",
-        details:
-          "You may be entitled to a protection order under the Domestic Violence Act. A legal aid organisation can explain your options at no cost.",
-        priority: "longer_term",
-      },
-    ],
-    resources: [
-      {
-        name: "Ministry of Human Rights Helpline",
-        phone: "1099",
-        why: "Free confidential counseling and legal advice for your situation.",
-      },
-      {
-        name: "Punjab Women's Helpline (PCSW)",
-        phone: "1043",
-        why: "24/7 helpline with trained women counselors who understand what you are going through.",
-      },
-      {
-        name: "Rozan Counseling Helpline",
-        phone: "0304-111-1741",
-        why: "Confidential counseling to help you process your experience and plan next steps.",
-      },
-    ],
-    note: "You took a brave step by describing your situation. Whatever you decide to do next, know that support is available and you deserve to be treated with dignity.",
-    primary_action: {
-      type: "call",
-      label: "Call Human Rights Helpline (1099)",
-      value: "1099",
-      description:
-        "Free confidential counseling and legal advice for your situation.",
-    },
-  };
+  if (typeof c.urgent === "boolean") ctx.urgent = c.urgent;
+  if (typeof c.stillMarried === "boolean") ctx.stillMarried = c.stillMarried;
+  if (typeof c.hasChildren === "boolean") ctx.hasChildren = c.hasChildren;
+  if (typeof c.informationOnly === "boolean") ctx.informationOnly = c.informationOnly;
+
+  return ctx;
 }
 
 // ---------------------------------------------------------------------------
-// POST handler
+// Fallback
 // ---------------------------------------------------------------------------
+
+/**
+ * Used when every model attempt fails. The classification text is still
+ * keyword-driven, but the resources are now drawn from the directory using the
+ * same province and gender scoping as the live path — the previous hardcoded
+ * fallback told everyone to call the Punjab women's helpline, including people
+ * in Sindh and Balochistan where 1043 does not answer.
+ */
+function getFallbackResponse(input: string, ctx: PromptContext) {
+  const text = input.toLowerCase();
+
+  const match = (...needles: string[]) => needles.some((n) => text.includes(n));
+
+  let categories: CaseCategory[];
+  let severity: "concerning" | "serious" | "critical";
+  let isUrgent = false;
+  let validation: string;
+  let categoryName: string;
+  let indicator: { id: string; name: string; explanation: string };
+
+  if (match("threat", "kill", "honour", "honor", "danger", "murder")) {
+    categories = ["physical", "harmful_practice"];
+    severity = "critical";
+    isUrgent = true;
+    categoryName = "Harmful Traditional Practices";
+    validation =
+      "What you are describing sounds extremely dangerous. Threats to your life, especially in the name of so-called honour, are a serious criminal offence in Pakistan. Your safety is the priority right now.";
+    indicator = {
+      id: "trad_01",
+      name: "Honour-based threats",
+      explanation:
+        "Threats to harm or kill someone in the name of honour are a criminal offence. The 2016 amendment closed the loophole that previously allowed families to forgive the perpetrator, so these threats must be taken seriously.",
+    };
+  } else if (match("online", "photo", "blackmail", "cyber", "message", "share", "picture")) {
+    categories = ["cyber", "sexual"];
+    severity = "serious";
+    categoryName = "Cyber Violence";
+    validation =
+      "What you have described is recognised as cyber violence under Pakistani law. Sharing or threatening to share private images, harassing someone online, and digital blackmail are all criminal offences. You have done nothing wrong.";
+    indicator = {
+      id: "cyber_01",
+      name: "Non-consensual sharing of intimate images, or threats to share them",
+      explanation:
+        "Sharing or threatening to share private images without consent is a crime under PECA 2016. The person doing this is committing the offence, not you.",
+    };
+  } else if (match("hit", "slap", "beat", "hurt", "physical", "punch", "kick")) {
+    categories = ["physical", "domestic"];
+    severity = "serious";
+    categoryName = "Physical Violence";
+    validation =
+      "What you have described is recognised as physical violence under Pakistani law. No one has the right to hit you, whatever the circumstances. This is not a private family matter.";
+    indicator = {
+      id: "phys_01",
+      name: "Hitting, slapping, kicking, punching or beating",
+      explanation:
+        "Being hit by a spouse, a family member or anyone else is a criminal offence in Pakistan, and the law treats it as violence rather than as a domestic disagreement.",
+    };
+  } else {
+    categories = ["domestic", "other"];
+    severity = "concerning";
+    categoryName = "Psychological / Emotional Violence";
+    validation =
+      "Thank you for telling us what happened. What you have described may constitute a form of violence or harassment recognised under Pakistani law. Your feelings are valid, and you have every right to seek help.";
+    indicator = {
+      id: "psych_01",
+      name: "Verbal abuse, humiliation and controlling behaviour",
+      explanation:
+        "Repeated verbal abuse, humiliation and controlling behaviour are recognised as psychological violence, including restrictions on seeing family, using a phone, working or moving freely.",
+    };
+  }
+
+  const resources = getResources({
+    province: ctx.province,
+    gender: ctx.gender,
+    categories,
+  }).slice(0, 4);
+
+  // Prefer a helpline dedicated to this province over the national one: for a
+  // domestic case in Punjab, 1043 is staffed by women and can arrange a VAW
+  // centre, which 1099 cannot.
+  const withPhone = resources.filter((r) => r.phone);
+  const provincial = withPhone.find(
+    (r) => r.type !== "emergency" && !r.scope.includes("national"),
+  );
+  const national = withPhone.find((r) => r.type !== "emergency");
+  const emergency = withPhone.find((r) => r.type === "emergency");
+  const chosen = isUrgent
+    ? (emergency ?? provincial ?? national)
+    : (provincial ?? national ?? emergency);
+
+  return {
+    is_urgent: isUrgent,
+    validation,
+    classifications: [
+      {
+        category_id: categories[0],
+        category_name: categoryName,
+        indicator_id: indicator.id,
+        indicator_name: indicator.name,
+        explanation: indicator.explanation,
+        legal_reference:
+          "Our legal reference service is temporarily unavailable. The helplines below can tell you exactly which provisions apply to your situation.",
+      },
+    ],
+    severity,
+    severity_explanation:
+      "This is an offline assessment made while our analysis service was unreachable, so it is less precise than usual. Please call one of the numbers below for guidance specific to your case.",
+    actions: [
+      {
+        step: "Write down what happened, while it is fresh",
+        details:
+          "Record dates, times and details of each incident. Photograph any injuries. Keep this somewhere the other person cannot reach — with a trusted friend, or in a private online account.",
+        priority: "immediate" as const,
+      },
+      {
+        step: chosen?.phone ? `Call ${chosen.name} on ${chosen.phone}` : "Call the Ministry of Human Rights helpline on 1099",
+        details:
+          chosen?.description ??
+          "Free, confidential legal advice and referral for any human rights violation, anywhere in Pakistan.",
+        priority: "immediate" as const,
+      },
+      {
+        step: "Try the assessment again shortly",
+        details:
+          "Our analysis service was briefly unavailable. Coming back in a few minutes will give you guidance matched to the specific laws that apply where you live.",
+        priority: "short_term" as const,
+      },
+    ],
+    resources: resources
+      // A card with no way to make contact is not a resource, so entries whose
+      // access route is a district office (Dar-ul-Aman) are left out of the
+      // fallback rather than rendered with an empty number.
+      .filter((r) => r.phone || r.website)
+      .map((r) => ({
+        name: r.name,
+        phone: r.phone ?? "",
+        website: r.website,
+        why: r.description,
+      })),
+    note: "You are not to blame for what happened, and support is available whatever you decide to do next.",
+    primary_action: chosen?.phone
+      ? {
+          type: "call" as const,
+          label: `Call ${buttonLabel(chosen.name)} (${chosen.phone})`,
+          value: chosen.phone,
+          description: chosen.description,
+        }
+      : undefined,
+  };
+}
+
+/** Trims a long organisation name so it fits on a button. */
+function buttonLabel(name: string): string {
+  const cut = name.split(/[—(]/)[0].trim();
+  return cut.length > 34 ? `${cut.slice(0, 31)}...` : cut;
+}
+
+// ---------------------------------------------------------------------------
+// POST
+// ---------------------------------------------------------------------------
+
 export async function POST(request: Request) {
   try {
-    const { input, locale } = await request.json();
+    const body = await request.json();
+    const { input, locale } = body;
     const lang: "en" | "ur" = locale === "ur" ? "ur" : "en";
+    const ctx = sanitiseContext(body.context);
 
-    if (!input || input.trim().length === 0) {
+    if (!input || typeof input !== "string" || input.trim().length === 0) {
       return NextResponse.json(
         { error: "Please describe your situation" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const trimmedInput = input.trim();
+    const trimmedInput = input.trim().slice(0, 8000);
 
-    // Try Gemini API call — attempt each model in order
     try {
       if (!GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY not configured");
@@ -427,14 +313,9 @@ export async function POST(request: Request) {
 
       const requestBody = JSON.stringify({
         systemInstruction: {
-          parts: [{ text: buildSystemPrompt(lang) }],
+          parts: [{ text: buildSystemPrompt(lang, ctx) }],
         },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: trimmedInput }],
-          },
-        ],
+        contents: [{ role: "user", parts: [{ text: trimmedInput }] }],
         generationConfig: {
           temperature: 0.3,
           maxOutputTokens: 4096,
@@ -456,7 +337,7 @@ export async function POST(request: Request) {
               headers: { "Content-Type": "application/json" },
               body: requestBody,
               signal: controller.signal,
-            }
+            },
           );
 
           clearTimeout(timeout);
@@ -476,7 +357,7 @@ export async function POST(request: Request) {
             continue;
           }
 
-          const parsed = parseClaudeJSON(rawText);
+          const parsed = parseModelJSON(rawText);
           if (parsed && isValidAssessment(parsed)) {
             return NextResponse.json(parsed);
           }
@@ -485,21 +366,21 @@ export async function POST(request: Request) {
           lastError = new Error(`${model} returned invalid JSON`);
         } catch (modelError) {
           console.warn(`${model} failed:`, modelError);
-          lastError = modelError instanceof Error ? modelError : new Error(String(modelError));
+          lastError =
+            modelError instanceof Error ? modelError : new Error(String(modelError));
         }
       }
 
-      // All models failed
-      throw lastError || new Error("All Gemini models failed");
+      throw lastError || new Error("All models failed");
     } catch (aiError) {
-      console.error("Gemini API error, using fallback:", aiError);
-      return NextResponse.json(getFallbackResponse(trimmedInput));
+      console.error("Assessment model error, using fallback:", aiError);
+      return NextResponse.json(getFallbackResponse(trimmedInput, ctx));
     }
   } catch (error) {
     console.error("Assessment error:", error);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

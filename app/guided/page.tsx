@@ -1,178 +1,146 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
 import AssessmentResult, { AssessmentData } from "@/components/AssessmentResult";
 import { useLanguage } from "@/lib/language-context";
-import { t, tArray, tStep } from "@/lib/i18n";
-import type { TranslationKey } from "@/lib/i18n";
+import { t, tStep } from "@/lib/i18n";
+import {
+  buildNarrative,
+  deriveCaseContext,
+  getStepOptions,
+  getVisibleSteps,
+  isStepAnswered,
+  localized,
+  nextStepIndex,
+  pruneAnswers,
+  reconcileIndex,
+  stepIndexById,
+  summariseAnswers,
+  type Answers,
+} from "@/lib/guided-flow";
 
-// ---------------------------------------------------------------------------
-// Step definition
-// ---------------------------------------------------------------------------
-interface StepDef {
-  id: string;
-  question: TranslationKey;
-  options?: TranslationKey;
-  multiSelect: boolean;
-  type: "options" | "text";
-}
-
-const SPOUSE_VALUES = ["Husband or partner", "Ex-partner"];
-// Urdu equivalents so the conditional works regardless of locale
-const SPOUSE_VALUES_UR = ["شوہر یا پارٹنر", "سابق پارٹنر"];
-
-function isSpouse(who: string[] | undefined): boolean {
-  if (!who?.length) return false;
-  return SPOUSE_VALUES.includes(who[0]) || SPOUSE_VALUES_UR.includes(who[0]);
-}
-
-const YES_VALUES = ["Yes", "ہاں"];
-
-function isYes(val: string[] | undefined): boolean {
-  if (!val?.length) return false;
-  return YES_VALUES.includes(val[0]);
-}
-
-// ---------------------------------------------------------------------------
-// Compute the dynamic step list based on current answers
-// ---------------------------------------------------------------------------
-function computeSteps(answers: Record<string, string[]>): StepDef[] {
-  const steps: StepDef[] = [
-    { id: "gender", question: "guidedGender", options: "guidedGenderOpts", multiSelect: false, type: "options" },
-    { id: "province", question: "guidedProvince", options: "guidedProvinceOpts", multiSelect: false, type: "options" },
-    { id: "where", question: "guidedQ1", options: "guidedQ1Opts", multiSelect: false, type: "options" },
-    { id: "who", question: "guidedQ2", options: "guidedQ2Opts", multiSelect: false, type: "options" },
-  ];
-
-  // Conditional spouse/family steps
-  if (isSpouse(answers.who)) {
-    steps.push({ id: "kidsInvolved", question: "guidedKids", options: "guidedKidsOpts", multiSelect: false, type: "options" });
-
-    if (isYes(answers.kidsInvolved)) {
-      steps.push({ id: "kidsCount", question: "guidedKidsCount", options: "guidedKidsCountOpts", multiSelect: false, type: "options" });
-    }
-
-    steps.push({ id: "intent", question: "guidedIntent", options: "guidedIntentOpts", multiSelect: true, type: "options" });
-  }
-
-  // Always-present remaining steps
-  steps.push(
-    { id: "whatHappened", question: "guidedQ3", options: "guidedQ3Opts", multiSelect: true, type: "options" },
-    { id: "howOften", question: "guidedQ4", options: "guidedQ4Opts", multiSelect: false, type: "options" },
-    { id: "additional", question: "guidedQ5", type: "text", multiSelect: false },
+function ChevronBack() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="rtl:rotate-180">
+      <path
+        d="M12.5 15L7.5 10L12.5 5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
-
-  return steps;
 }
 
-// ---------------------------------------------------------------------------
-// Build the prose description sent to the AI
-// ---------------------------------------------------------------------------
-function buildDescription(
-  answers: Record<string, string[]>,
-  additionalText: string
-): string {
-  const parts: string[] = [];
-
-  if (answers.gender?.length) {
-    parts.push(`I am a ${answers.gender[0].toLowerCase()}.`);
-  }
-  if (answers.province?.length) {
-    parts.push(`I am in ${answers.province[0]}.`);
-  }
-  if (answers.where?.length) {
-    parts.push(`This happened ${answers.where[0].toLowerCase()}.`);
-  }
-  if (answers.who?.length) {
-    parts.push(`The person who did this is my ${answers.who[0].toLowerCase()}.`);
-  }
-
-  // Conditional spouse fields
-  if (answers.kidsInvolved?.length) {
-    if (isYes(answers.kidsInvolved)) {
-      const count = answers.kidsCount?.[0] || "";
-      parts.push(`Children are involved. I have ${count} children.`);
-    } else {
-      parts.push(`No children are involved.`);
-    }
-  }
-  if (answers.intent?.length) {
-    const goals = answers.intent.map((a) => a.toLowerCase()).join(", ");
-    parts.push(`My goal: ${goals}.`);
-  }
-
-  if (answers.whatHappened?.length) {
-    const items = answers.whatHappened.map((a) => a.toLowerCase()).join(", ");
-    parts.push(`What happened: ${items}.`);
-  }
-  if (answers.howOften?.length) {
-    parts.push(`${answers.howOften[0]}.`);
-  }
-  if (additionalText.trim()) {
-    parts.push(`Additional context: ${additionalText.trim()}`);
-  }
-
-  return parts.join(" ");
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 export default function GuidedPage() {
   const { locale } = useLanguage();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+
+  const [answers, setAnswers] = useState<Answers>({});
   const [additionalText, setAdditionalText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showDanger, setShowDanger] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AssessmentData | null>(null);
 
-  const steps = useMemo(() => computeSteps(answers), [answers]);
+  const steps = useMemo(() => getVisibleSteps(answers), [answers]);
   const totalSteps = steps.length;
-  const currentStepDef = steps[currentStep];
-  const isLastStep = currentStepDef?.type === "text";
+  const step = steps[Math.min(currentIndex, totalSteps - 1)];
+  const options = useMemo(
+    () => (step ? getStepOptions(step, answers) : []),
+    [step, answers],
+  );
 
-  const handleSelect = (option: string) => {
-    const step = currentStepDef;
-    const current = answers[step.id] || [];
+  const context = useMemo(() => deriveCaseContext(answers), [answers]);
+  const narrative = useMemo(
+    () => buildNarrative(answers, additionalText),
+    [answers, additionalText],
+  );
 
-    if (step.multiSelect) {
-      const updated = current.includes(option)
-        ? current.filter((o) => o !== option)
-        : [...current, option];
-      setAnswers((prev) => ({ ...prev, [step.id]: updated }));
-    } else {
-      const newAnswers = { ...answers, [step.id]: [option] };
+  /**
+   * Applies an answer change and repositions. Answers are pruned first, so a
+   * change that invalidates later ones (switching the perpetrator from a
+   * husband to a colleague) drops the marital status and khula goal rather than
+   * carrying them into the narrative. Position is then resolved by step ID, not
+   * by index, because the list length may have changed underneath us.
+   */
+  const applyAnswer = (updated: Answers, advanceFrom?: string) => {
+    const pruned = pruneAnswers(updated);
+    const nextSteps = getVisibleSteps(pruned);
 
-      // When changing the "who" answer, clear conditional fields if no longer spouse
-      if (step.id === "who" && !SPOUSE_VALUES.includes(option) && !SPOUSE_VALUES_UR.includes(option)) {
-        delete newAnswers.kidsInvolved;
-        delete newAnswers.kidsCount;
-        delete newAnswers.intent;
-      }
-
-      // When changing kidsInvolved to No, clear kidsCount
-      if (step.id === "kidsInvolved" && !YES_VALUES.includes(option)) {
-        delete newAnswers.kidsCount;
-      }
-
-      setAnswers(newAnswers);
-      setTimeout(() => setCurrentStep((s) => s + 1), 200);
-    }
+    setAnswers(pruned);
+    setCurrentIndex(
+      advanceFrom
+        ? nextStepIndex(nextSteps, advanceFrom)
+        : reconcileIndex(nextSteps, step?.id, currentIndex),
+    );
   };
 
-  const handleMultiSelectNext = () => {
-    const step = currentStepDef;
-    if (answers[step.id]?.length > 0) {
-      setCurrentStep((s) => s + 1);
+  const handleSelect = (optionId: string) => {
+    if (!step) return;
+
+    if (step.kind === "multi") {
+      const current = answers[step.id] ?? [];
+      const updated = current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId];
+
+      const next = { ...answers };
+      if (updated.length) next[step.id] = updated;
+      else delete next[step.id];
+
+      // Multi-select waits for an explicit Next, so the position is unchanged.
+      applyAnswer(next);
+      return;
     }
+
+    const next = { ...answers, [step.id]: [optionId] };
+
+    // The safety question is the one place an answer changes the shape of the
+    // session rather than just the next question.
+    if (step.id === "safety" && optionId === "safety_danger_now") {
+      const pruned = pruneAnswers(next);
+      setAnswers(pruned);
+      setShowDanger(true);
+      return;
+    }
+
+    applyAnswer(next, step.id);
   };
 
-  const handleSubmit = async () => {
-    const description = buildDescription(answers, additionalText);
+  const handleNext = () => {
+    if (!step) return;
+    setCurrentIndex(nextStepIndex(steps, step.id));
+  };
+
+  const handleBack = () => {
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  };
+
+  const handleEdit = (stepId: string) => {
+    const index = stepIndexById(steps, stepId);
+    if (index !== -1) setCurrentIndex(index);
+  };
+
+  const handleSkip = () => {
+    if (!step) return;
+
+    // Skip means skip: clear anything already chosen for this step so a partial
+    // selection does not travel to the model as though it were the full answer.
+    const next = { ...answers };
+    delete next[step.id];
+    if (step.kind === "text") setAdditionalText("");
+
+    applyAnswer(next, step.id);
+  };
+
+  const submit = async (overrideNarrative?: string) => {
+    const body = overrideNarrative ?? narrative;
+
     setLoading(true);
     setError("");
 
@@ -180,20 +148,22 @@ export default function GuidedPage() {
       const res = await fetch("/api/assess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: description, locale }),
+        body: JSON.stringify({
+          input: body || "I need help understanding my rights.",
+          locale,
+          context,
+        }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Something went wrong");
-      }
-
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Something went wrong");
+
       setResult(data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
       );
+    } finally {
       setLoading(false);
     }
   };
@@ -202,53 +172,107 @@ export default function GuidedPage() {
     setResult(null);
     setAnswers({});
     setAdditionalText("");
-    setCurrentStep(0);
+    setCurrentIndex(0);
+    setShowDanger(false);
     setError("");
     setLoading(false);
   };
 
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep((s) => s - 1);
-    }
-  };
-
   if (result) {
-    return <AssessmentResult data={result} onReset={handleReset} />;
+    return (
+      <AssessmentResult
+        data={result}
+        onReset={handleReset}
+        referralContext={context}
+        referralNarrative={narrative}
+      />
+    );
   }
+
+  const header = (
+    <header className="flex flex-col items-center gap-4 px-5 py-6">
+      <Link href="/">
+        <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
+      </Link>
+      <LanguageToggle />
+    </header>
+  );
+
+  // --- Danger interstitial -------------------------------------------------
+  // Someone in immediate danger should not have to answer a dozen questions to
+  // reach a phone number. This shows the emergency lines straight away and lets
+  // them skip the rest of the flow entirely.
+  if (showDanger) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        {header}
+        <main className="flex-1 px-5 pb-10 flex flex-col gap-6">
+          <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[24px] p-6 flex flex-col gap-4">
+            <h1 className="font-heading font-serif text-2xl text-hifazat-ink">
+              {t(locale, "dangerTitle")}
+            </h1>
+            <p className="text-base text-hifazat-ink leading-relaxed">
+              {t(locale, "dangerBody")}
+            </p>
+            <div className="flex flex-col gap-3">
+              <a
+                href="tel:15"
+                className="flex items-center justify-center w-full h-[52px] bg-hifazat-red text-white font-semibold rounded-full text-lg"
+              >
+                {t(locale, "resultCallPolice")}
+              </a>
+              <a
+                href="tel:1099"
+                className="flex items-center justify-center w-full h-[52px] bg-hifazat-red text-white font-semibold rounded-full text-lg"
+              >
+                {t(locale, "resultCallHR")}
+              </a>
+            </div>
+          </div>
+
+          {error && <p className="text-base text-hifazat-red">{error}</p>}
+
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => submit()}
+              disabled={loading}
+              className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? t(locale, "assessAnalysing") : t(locale, "dangerExpress")}
+            </button>
+            <button
+              onClick={() => {
+                setShowDanger(false);
+                setCurrentIndex(nextStepIndex(steps, "safety"));
+              }}
+              disabled={loading}
+              className="w-full py-3 text-hifazat-muted font-medium text-base"
+            >
+              {t(locale, "dangerContinue")}
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!step) return null;
+
+  const answered = isStepAnswered(step, answers);
+  const summary = summariseAnswers(answers, additionalText, locale);
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <header className="flex flex-col items-center gap-4 px-5 py-6">
-        <Link href="/">
-          <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
-        </Link>
-        <LanguageToggle />
-      </header>
+      {header}
 
       <main className="flex-1 px-5 pb-10">
-        {/* Back link */}
-        {currentStep > 0 ? (
+        {/* Back */}
+        {currentIndex > 0 ? (
           <button
             onClick={handleBack}
             className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-4"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="rtl:rotate-180"
-            >
-              <path
-                d="M12.5 15L7.5 10L12.5 5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ChevronBack />
             {t(locale, "goBack")}
           </button>
         ) : (
@@ -256,130 +280,139 @@ export default function GuidedPage() {
             href="/"
             className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-4"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="rtl:rotate-180"
-            >
-              <path
-                d="M12.5 15L7.5 10L12.5 5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ChevronBack />
             {t(locale, "goBack")}
           </Link>
         )}
 
         {/* Progress */}
         <div className="flex items-center gap-2 mb-2">
-          {Array.from({ length: totalSteps }).map((_, i) => (
+          {steps.map((s, i) => (
             <div
-              key={i}
+              key={s.id}
               className={`h-1.5 flex-1 rounded-full ${
-                i <= currentStep ? "bg-hifazat-teal" : "bg-hifazat-border"
+                i <= currentIndex ? "bg-hifazat-teal" : "bg-hifazat-border"
               }`}
             />
           ))}
         </div>
         <p className="text-sm text-hifazat-muted mb-6">
-          {tStep(locale, currentStep + 1, totalSteps)}
+          {tStep(locale, currentIndex + 1, totalSteps)}
         </p>
 
-        {/* Option-based steps */}
-        {currentStepDef?.type === "options" && (
-          <>
-            <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-5">
-              {t(locale, currentStepDef.question)}
-            </h1>
+        <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-2">
+          {localized(step.question, locale)}
+        </h1>
+        {step.help && (
+          <p className="text-sm text-hifazat-muted mb-5 leading-relaxed">
+            {localized(step.help, locale)}
+          </p>
+        )}
 
-            <div className="flex flex-col gap-3">
-              {tArray(locale, currentStepDef.options!).map((option) => {
-                const selected = answers[currentStepDef.id]?.includes(option) || false;
-                return (
-                  <button
-                    key={option}
-                    onClick={() => handleSelect(option)}
-                    className={`w-full text-start px-4 py-3.5 rounded-[16px] text-base border transition-colors ${
-                      selected
-                        ? "bg-hifazat-teal-light border-hifazat-teal text-hifazat-ink font-medium"
-                        : "bg-white border-hifazat-border text-hifazat-ink"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Option steps */}
+        {(step.kind === "single" || step.kind === "multi") && (
+          <div className="flex flex-col gap-3 mt-3">
+            {options.map((option) => {
+              const selected = answers[step.id]?.includes(option.id) ?? false;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => handleSelect(option.id)}
+                  aria-pressed={step.kind === "multi" ? selected : undefined}
+                  className={`w-full text-start px-4 py-3.5 rounded-[16px] text-base border transition-colors ${
+                    selected
+                      ? "bg-hifazat-teal-light border-hifazat-teal text-hifazat-ink font-medium"
+                      : "bg-white border-hifazat-border text-hifazat-ink"
+                  }`}
+                >
+                  {localized(option.label, locale)}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-            {currentStepDef.multiSelect && (
+        {/* Free text step */}
+        {step.kind === "text" && (
+          <textarea
+            value={additionalText}
+            onChange={(e) => setAdditionalText(e.target.value)}
+            placeholder={t(locale, "guidedTextPlaceholder")}
+            dir={locale === "ur" ? "rtl" : "ltr"}
+            rows={5}
+            className="w-full min-h-[140px] p-4 mt-3 text-base text-hifazat-ink bg-white border border-hifazat-border rounded-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
+          />
+        )}
+
+        {/* Review step */}
+        {step.kind === "review" && (
+          <div className="flex flex-col gap-3 mt-3">
+            {summary.length === 0 && (
+              <p className="text-base text-hifazat-muted">{t(locale, "guidedNoAnswers")}</p>
+            )}
+            {summary.map((row) => (
               <button
-                onClick={handleMultiSelectNext}
-                disabled={!answers[currentStepDef.id]?.length}
-                className="w-full mt-5 h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50"
+                key={row.stepId}
+                onClick={() => handleEdit(row.stepId)}
+                className="w-full text-start bg-white border border-hifazat-border rounded-[16px] px-4 py-3 flex items-start justify-between gap-3"
+              >
+                <span className="flex-1">
+                  <span className="block text-sm text-hifazat-muted">{row.question}</span>
+                  <span className="block text-base text-hifazat-ink font-medium mt-0.5">
+                    {row.answer}
+                  </span>
+                </span>
+                <span className="text-sm font-semibold text-hifazat-teal shrink-0 mt-0.5">
+                  {t(locale, "guidedEdit")}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {error && <p className="text-base text-hifazat-red mt-4">{error}</p>}
+
+        {/* Controls */}
+        <div className="flex flex-col gap-3 mt-6">
+          {step.kind === "review" ? (
+            <button
+              onClick={() => submit()}
+              disabled={loading}
+              className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {t(locale, "assessAnalysing")}
+                </>
+              ) : (
+                t(locale, "guidedReviewSubmit")
+              )}
+            </button>
+          ) : (
+            (step.kind === "multi" || step.kind === "text") && (
+              <button
+                onClick={handleNext}
+                disabled={step.kind === "multi" && !answered}
+                className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50"
               >
                 {t(locale, "guidedNext")}
               </button>
-            )}
-          </>
-        )}
+            )
+          )}
 
-        {/* Text step (last step) */}
-        {isLastStep && (
-          <>
-            <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-2">
-              {t(locale, "guidedQ5")}
-            </h1>
-            <p className="text-sm text-hifazat-muted mb-5">
-              {t(locale, "guidedQ5Sub")}
-            </p>
-
-            <textarea
-              value={additionalText}
-              onChange={(e) => setAdditionalText(e.target.value)}
-              placeholder={t(locale, "guidedQ5Placeholder")}
-              dir={locale === "ur" ? "rtl" : "ltr"}
-              className="w-full min-h-[140px] p-4 text-base text-hifazat-ink bg-white border border-hifazat-border rounded-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
-              rows={5}
-            />
-
-            {error && (
-              <p className="text-sm text-hifazat-red mt-3">{error}</p>
-            )}
-
-            <div className="flex flex-col gap-3 mt-5">
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    {t(locale, "assessAnalysing")}
-                  </>
-                ) : (
-                  t(locale, "guidedSubmit")
-                )}
-              </button>
-              {!loading && (
-                <button
-                  onClick={handleSubmit}
-                  className="w-full py-3 text-hifazat-muted font-medium text-base"
-                >
-                  {t(locale, "guidedSkip")}
-                </button>
-              )}
-            </div>
-          </>
-        )}
+          {step.optional && step.kind !== "review" && (
+            <button
+              onClick={handleSkip}
+              className="w-full py-3 text-hifazat-muted font-medium text-base"
+            >
+              {t(locale, "guidedSkip")}
+            </button>
+          )}
+        </div>
       </main>
     </div>
   );

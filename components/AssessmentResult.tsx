@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
+import ReferralForm from "@/components/ReferralForm";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
+import type { ReferralCaseContext } from "@/lib/referral";
 
 interface Classification {
   category_id: string;
@@ -68,11 +71,22 @@ const PRIORITY_KEYS = {
 export default function AssessmentResult({
   data,
   onReset,
+  referralContext,
+  referralNarrative,
 }: {
   data: AssessmentData;
   onReset: () => void;
+  /**
+   * Present when the assessment came from the guided flow, which is the only
+   * path that produces structured enough facts to route a referral to the right
+   * legal desk. The free-text route omits these and the referral card is hidden.
+   */
+  referralContext?: ReferralCaseContext;
+  referralNarrative?: string;
 }) {
   const { locale } = useLanguage();
+  const [showReferral, setShowReferral] = useState(false);
+  const canRefer = Boolean(referralNarrative);
   const severityLabel = t(
     locale,
     SEVERITY_KEYS[data.severity] || SEVERITY_KEYS.concerning
@@ -278,12 +292,17 @@ export default function AssessmentResult({
             <h3 className="text-base font-semibold text-hifazat-ink">
               {r.name}
             </h3>
-            <a
-              href={`tel:${r.phone}`}
-              className="font-heading font-serif text-[32px] leading-none text-hifazat-teal"
-            >
-              {r.phone}
-            </a>
+            {/* Some entries are reached through an office or website rather
+                than a number, so an empty tel: link must not be rendered. */}
+            {r.phone && (
+              <a
+                href={`tel:${r.phone}`}
+                dir="ltr"
+                className="font-heading font-serif text-[32px] leading-none text-hifazat-teal"
+              >
+                {r.phone}
+              </a>
+            )}
             {r.website && (
               <a
                 href={r.website.startsWith("http") ? r.website : `https://${r.website}`}
@@ -321,6 +340,34 @@ export default function AssessmentResult({
           <hr className="border-hifazat-border" />
         </>
       )}
+
+      {/* Lawyer referral — offered after the guidance, never before it, so
+          nobody has to hand over a phone number to find out their rights. */}
+      {canRefer &&
+        (showReferral ? (
+          <ReferralForm
+            context={referralContext}
+            narrative={referralNarrative!}
+            assessmentCategory={primaryCategory}
+            assessmentSeverity={data.severity}
+            onClose={() => setShowReferral(false)}
+          />
+        ) : (
+          <div className="bg-hifazat-footer rounded-[24px] p-6 flex flex-col gap-3">
+            <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
+              {t(locale, "referralCtaTitle")}
+            </h3>
+            <p className="text-base text-hifazat-muted leading-relaxed">
+              {t(locale, "referralCtaBody")}
+            </p>
+            <button
+              onClick={() => setShowReferral(true)}
+              className="w-full h-[52px] bg-hifazat-dark-teal text-white font-semibold rounded-full text-lg"
+            >
+              {t(locale, "referralCtaButton")}
+            </button>
+          </div>
+        ))}
 
       {/* Dynamic CTA */}
       <div className="flex flex-col gap-2 items-center">

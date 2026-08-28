@@ -1,120 +1,133 @@
 # Hifazat — Build Roadmap
 
-## What's Built (MVP Prototype)
-- [x] Landing page with hero, CTAs, emergency strip
-- [x] Free text assessment (input + result display)
-- [x] Guided input mode (5-step question flow + result display)
-- [x] Resources directory (sorted, categorised, tappable phone links)
-- [x] Quick Exit (replaces browser history)
-- [x] Discreet tab title ("My Resources")
-- [x] Bottom navigation (Home, Resources, Exit)
-- [x] Hardcoded demo responses (keyword-based)
-- [x] NCSW knowledge base encoded in TypeScript
-- [x] Claude API route (built, using hardcoded responses for now)
+Target: **v2 launch, October 2026**, with the PNCY partnership (legal desk of 15
+lawyers, hosting, co-branding).
 
 ---
 
-## What's Next — Phase by Phase
+## Shipped
 
-### Phase 1 — Urdu Translation + Language Toggle ← NEXT
-> The spec calls for "full Urdu support with proper right-to-left layout" and "language toggle on every screen"
+### MVP
+- [x] Landing page, hero, emergency strip
+- [x] Free-text assessment (`/assess`)
+- [x] Guided questionnaire (`/guided`)
+- [x] Resources directory (`/resources`)
+- [x] NCSW indicator knowledge base and Pakistani legal provisions
+- [x] Quick exit, discreet tab title
 
-- [ ] Create i18n system with EN/UR translation files
-- [ ] Universal language toggle in header (persistent across pages, saved to localStorage)
-- [ ] Translate ALL UI strings: headings, buttons, placeholders, labels, emergency strip, guided flow questions/options, result section headings, bottom nav
-- [ ] RTL layout support — when Urdu is active, flip text direction, alignment, and mirrored layouts
-- [ ] Add Noto Sans Urdu subset to font loading
-- [ ] Urdu page title: "حفاظت" when in Urdu mode
-- [ ] Test guided flow options in Urdu (they should be culturally accurate, not just literal translations)
+### Urdu and localisation
+- [x] EN/UR translation system with a toggle on every screen
+- [x] RTL layout, Urdu font loading, locale persisted to localStorage
+- [x] AI responds in the interface language regardless of input language
 
-### Phase 2 — Connect Live AI
-> Replace hardcoded demo responses with real Claude API
+### Live AI
+- [x] Gemini 2.5 Flash, falling back to Flash-Lite
+- [x] Offline keyword fallback when the model is unreachable
+- [x] Structured JSON output with validation and retry across models
 
-- [ ] Switch API route to real Claude Sonnet calls
-- [ ] Test with both English and Urdu inputs (AI already responds in user's language per system prompt)
-- [ ] Add streaming for faster perceived response time
-- [ ] Graceful error handling and retry logic
-- [ ] Test across all guided flow combinations + edge cases
+### Jurisdiction and questionnaire correctness
+- [x] Province registry with per-province devolved legislation
+      (`lib/provinces.ts`). Corrects the app's previous assumption that the
+      Domestic Violence Act 2012 is national — it applies to Islamabad only,
+      and each province has its own act.
+- [x] Law and resources scoped **in code** before the prompt is built, rather
+      than asking the model to filter. It cannot cite a statute that does not
+      operate where the user lives, or a helpline we have not verified.
+- [x] Guided flow rebuilt on stable option IDs (`lib/guided-flow.ts`),
+      replacing branching that matched on localised display strings
+- [x] Relationship- and marital-status-aware goals — khula is no longer offered
+      to people who are divorced or were never married
+- [x] New questions: safety check, marital status, child ages, recency,
+      evidence held, prior reporting, and a review-and-edit step
+- [x] Danger interstitial that surfaces emergency numbers immediately and lets
+      someone skip the questionnaire entirely
+- [x] Answer pruning, so changing an earlier answer cannot carry a stale goal
+      into the assessment
+- [x] Resource directory covering all 7 provinces and territories, with
+      province/type/search filters and a verification flag
+- [x] Test suite for the branching, scoping and referral logic (`npm test`)
 
-### Phase 3 — Know Your Rights Library
-> Spec Feature 3: "A browsable reference section that provides plain-language explainers of each type of violence"
-
-- [ ] New screen: `/rights` — browsable, expandable cards for each NCSW category
-- [ ] Each entry: legal definition, real-world examples, relevant law + section, action steps
-- [ ] Search/filter by category
-- [ ] Add "Your Rights" to bottom navigation (spec says 3 nav items: Home, Your Rights, Resources)
-- [ ] EN/UR support for all rights content
-
-### Phase 4 — Province-Aware Resources
-> Spec: "Province-filterable directory of helplines, NGOs, legal aid, shelters"
-
-- [ ] Add province filter to resources page
-- [ ] Expand resources data with more provincial helplines, shelters, legal aid
-- [ ] Province detection or selection (user picks their province once)
-- [ ] Show relevant provincial resources in assessment results
-
-### Phase 5 — About / Methodology Page
-> Spec: "Transparency page: how the AI works, which sources power it, limitations, disclaimer"
-
-- [ ] New screen: `/about`
-- [ ] How the AI works (plain language)
-- [ ] Source publications listed
-- [ ] Limitations and disclaimer
-- [ ] "Not a substitute for legal advice" messaging
-
-### Phase 6 — Supabase + Database
-> Spec: "Supabase (PostgreSQL + pgvector)"
-
-- [ ] Set up Supabase project
-- [ ] Create tables: `knowledge_chunks`, `resources`, `interaction_logs`
-- [ ] Migrate knowledge base from TypeScript to Supabase
-- [ ] Migrate resources from TypeScript to Supabase
-- [ ] Anonymised interaction logging (category + severity only, NO PII)
-
-### Phase 7 — RAG Pipeline
-> Spec: "Retrieval-Augmented Generation pipeline with pgvector embeddings"
-
-- [ ] Generate vector embeddings for all knowledge base chunks
-- [ ] Replace full-KB injection in system prompt with vector similarity search
-- [ ] Retrieve top-k relevant chunks per user query
-- [ ] More efficient, scalable, and accurate AI responses
-
-### Phase 8 — Response Sharing
-> Spec: "Allow users to save/share their assessment response as a PDF or shareable link"
-
-- [ ] Generate shareable link (ephemeral, time-limited, no account required)
-- [ ] PDF export of assessment results
-- [ ] Share button in assessment result UI
-
-### Phase 9 — Trend Dashboard
-> Spec: "Aggregated, anonymised data visualisation for partner organisations"
-
-- [ ] Admin dashboard at `/dashboard` (gated access)
-- [ ] Visualise: categories, severity distribution, province breakdown, language split
-- [ ] No individual data exposed — only aggregates
-- [ ] Export capability for partner orgs (NCSW, PCSW, NCHR)
-
-### Phase 10 — Desktop + Responsive Layout
-> Spec: "Three breakpoints: 0-640px, 641-1024px, 1025px+"
-
-- [ ] Tablet layout (constrained center column)
-- [ ] Desktop layout (860px max-width, top nav instead of bottom nav)
-- [ ] Responsive breakpoints throughout
-
-### Phase 11 — WhatsApp Integration
-> Spec: "Explore WhatsApp-based interface via WhatsApp Business API"
-
-- [ ] Research WhatsApp Business API / Twilio feasibility
-- [ ] Build conversational flow for assessment via WhatsApp
-- [ ] Connect to same AI engine
+### Lawyer referral
+- [x] Case taxonomy and routing to the PNCY desks (`lib/referral.ts`)
+- [x] Pluggable delivery sinks: Google Sheets, email, dev console
+      (`lib/referral-sinks.ts`)
+- [x] `POST /api/refer` with validation, consent enforcement, rate limiting
+- [x] Consent-first intake form with a safe-to-contact question
+- [x] Reference codes for follow-up
 
 ---
 
-## Success Metrics (from spec — 6 months post-launch)
+## Next
+
+### Blocked on credentials or the team
+- [ ] **Verify the resource directory** — `docs/RESOURCE-VERIFICATION.md`. The
+      single highest-value pre-launch task. Unverified entries are currently
+      invisible to the AI and not tap-to-call, so this is what switches them on.
+- [ ] **Connect referral delivery** — set `GOOGLE_SHEETS_WEBHOOK_URL` or the
+      `RESEND_*` variables. See `docs/REFERRALS.md`. Until then `/api/refer`
+      returns 503 by design.
+- [ ] **Confirm the desk taxonomy** matches how the 15 lawyers are actually
+      divided, and adjust `LAWYER_CATEGORY_LABELS`.
+- [ ] **Resolve FIA vs NCCIA** for cyber complaint routing — both are currently
+      listed and one is likely stale.
+
+### Verified legal data in Supabase
+- [ ] Supabase project; tables for `legal_provisions`, `resources`,
+      `knowledge_chunks`, `referrals`
+- [ ] Migrate the TypeScript datasets, keeping the verification flag as a column
+- [ ] Data-access layer so the cutover is a config change
+- [ ] Anonymised interaction logging — category and severity only, no PII
+- [ ] Add a Supabase referral sink
+
+### Know Your Rights library
+- [ ] `/rights` — browsable explainers per NCSW category, filtered by province
+- [ ] Legal definition, real examples, relevant law and section, action steps
+- [ ] Add to navigation; full EN/UR
+
+### About / methodology
+- [ ] `/about` — how the AI works, sources, limitations, disclaimer
+- [ ] Publish the verification policy: what "confirmed" means and who checked
+
+### Branding and v2 identity
+- [ ] Refreshed visual identity reflecting the expanded scope
+- [ ] PNCY co-branding
+
+### Additional intake channels
+- [ ] WhatsApp Business API intake
+- [ ] Instagram and Facebook DM intake
+- [ ] All three feed the same referral pipeline — `source` is already modelled
+
+### Later
+- [ ] RAG with pgvector, replacing full knowledge-base injection
+- [ ] Shareable/printable assessment result
+- [ ] Aggregate trend dashboard for partner organisations
+- [ ] Desktop and tablet layouts
+- [ ] Native iOS and Android
+- [ ] Legal admin portal, once the network reaches 100 lawyers
+- [ ] Sandbox / game-style environments for school and college workshops
+
+---
+
+## Known gaps
+
+- **Rate limiting is per-instance.** Fine for now; move to Supabase or Upstash
+  with the backend.
+- **`@anthropic-ai/sdk` is an unused dependency.** Nothing imports it since the
+  switch to Gemini; safe to remove.
+- **No province-specific harassment ombudspersons.** All workplace cases route
+  to federal FOSPAH; Punjab, Sindh, KP and Balochistan each have their own.
+- **Balochistan, GB and AJK have no confirmed local resource.** Users there see
+  national numbers only until the verification pass is done.
+
+---
+
+## Success metrics (6 months post-launch)
+
 | Metric | Target |
 |---|---|
 | Monthly assessments completed | 5,000+ |
-| Helpline referrals generated | Track via resource card clicks |
+| Referrals sent to the legal desk | Track by `reference` |
+| Referral to first contact | < 48 hours |
 | Average time to first response | < 8 seconds |
-| Knowledge base coverage | 100% of P0 + P1 sources |
 | Urdu usage share | > 40% of assessments |
+| Resource entries verified | 100% before launch |
