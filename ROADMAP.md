@@ -113,8 +113,9 @@ lawyers, hosting, co-branding).
 - [ ] All three feed the same referral pipeline — `source` is already modelled
 
 ### Later
-- [ ] Streaming responses — the largest remaining perceived-latency win, and the
-      one the prompt scoping does not address
+- [x] Streaming responses — the safety verdict and opening sentence now arrive
+      seconds ahead of the law and action steps. Opt-in, with automatic fallback
+      to the whole-response path.
 - [ ] ~~RAG with pgvector~~ — **deliberately deferred.** The corpus is 41
       indicators and 29 statutes; similarity search over that would add an
       embedding round trip and non-determinism to a selection a WHERE clause

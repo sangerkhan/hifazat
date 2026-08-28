@@ -46,6 +46,9 @@ export default function GuidedPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AssessmentData | null>(null);
+  // Arrives seconds before the full assessment, so the person is not looking at
+  // a spinner while the law and the action steps are still being written.
+  const [preview, setPreview] = useState<{ is_urgent?: boolean; validation?: string }>({});
 
   const steps = useMemo(() => getVisibleSteps(answers), [answers]);
   const totalSteps = steps.length;
@@ -143,33 +146,97 @@ export default function GuidedPage() {
 
     setLoading(true);
     setError("");
+    setPreview({});
+
+    const payload = {
+      input: body || "I need help understanding my rights.",
+      locale,
+      context,
+      // Sent so an identical situation can be served from the reviewed
+      // answer cache instead of regenerated. The server derives the key
+      // itself; these are never trusted as one.
+      answers,
+      // Anything the person wrote in their own words makes this situation
+      // theirs alone, so it must not be cached or served to anyone else.
+      cacheable: !overrideNarrative && additionalText.trim().length === 0,
+    };
+
+    const requestWhole = async () => {
+      const res = await fetch("/api/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Something went wrong");
+      setResult(data);
+    };
 
     try {
       const res = await fetch("/api/assess", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: body || "I need help understanding my rights.",
-          locale,
-          context,
-          // Sent so an identical situation can be served from the reviewed
-          // answer cache instead of regenerated. The server derives the key
-          // itself; these are never trusted as one.
-          answers,
-          // Anything the person wrote in their own words makes this situation
-          // theirs alone, so it must not be cached or served to anyone else.
-          cacheable: !overrideNarrative && additionalText.trim().length === 0,
-        }),
+        body: JSON.stringify({ ...payload, stream: true }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
+      // A cache hit and the offline fallback both answer as ordinary JSON, so
+      // the response type decides how to read it rather than the request.
+      if (!res.ok || !res.body || !res.headers.get("content-type")?.includes("event-stream")) {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Something went wrong");
+        setResult(data);
+        return;
+      }
 
-      setResult(data);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finished = false;
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          const eventLine = frame.split("\n").find((l) => l.startsWith("event: "));
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+          if (!eventLine || !dataLine) continue;
+
+          const event = eventLine.slice(7).trim();
+          let data: Record<string, unknown>;
+          try {
+            data = JSON.parse(dataLine.slice(6));
+          } catch {
+            continue;
+          }
+
+          if (event === "partial") {
+            setPreview((prev) => ({ ...prev, ...data }));
+          } else if (event === "complete") {
+            setResult(data as unknown as AssessmentData);
+            finished = true;
+          } else if (event === "retry") {
+            await requestWhole();
+            finished = true;
+          }
+        }
+      }
+
+      // The stream ended without an answer — fall back rather than leaving the
+      // person on a spinner.
+      if (!finished) await requestWhole();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again.",
-      );
+      try {
+        await requestWhole();
+      } catch {
+        setError(
+          err instanceof Error ? err.message : "Something went wrong. Please try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -183,7 +250,66 @@ export default function GuidedPage() {
     setShowDanger(false);
     setError("");
     setLoading(false);
+    setPreview({});
   };
+
+  const header = (
+    <header className="flex flex-col items-center gap-4 px-5 py-6">
+      <Link href="/">
+        <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
+      </Link>
+      <LanguageToggle />
+    </header>
+  );
+
+  // While the assessment is being written, show what is already known. The
+  // safety verdict and the opening sentence arrive seconds ahead of the law and
+  // the action steps, and for someone in danger those seconds are the ones that
+  // matter.
+  if (loading && (preview.validation || preview.is_urgent)) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        {header}
+        <main className="flex-1 px-5 pb-10 flex flex-col gap-5">
+          {preview.is_urgent && (
+            <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[24px] p-5 text-center flex flex-col gap-4">
+              <p className="font-heading font-serif text-xl text-hifazat-ink">
+                {t(locale, "resultUrgent")}
+              </p>
+              <div className="flex flex-col gap-3">
+                <a
+                  href="tel:15"
+                  className="flex items-center justify-center w-full py-3.5 bg-hifazat-red text-white font-semibold rounded-full text-base"
+                >
+                  {t(locale, "resultCallPolice")}
+                </a>
+                <a
+                  href="tel:1099"
+                  className="flex items-center justify-center w-full py-3.5 bg-hifazat-red text-white font-semibold rounded-full text-base"
+                >
+                  {t(locale, "resultCallHR")}
+                </a>
+              </div>
+            </div>
+          )}
+
+          {preview.validation && (
+            <p className="text-base text-hifazat-ink leading-relaxed">
+              {preview.validation}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 text-hifazat-muted">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-base">{t(locale, "guidedStillWorking")}</span>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (result) {
     return (
@@ -195,15 +321,6 @@ export default function GuidedPage() {
       />
     );
   }
-
-  const header = (
-    <header className="flex flex-col items-center gap-4 px-5 py-6">
-      <Link href="/">
-        <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
-      </Link>
-      <LanguageToggle />
-    </header>
-  );
 
   // --- Danger interstitial -------------------------------------------------
   // Someone in immediate danger should not have to answer a dozen questions to

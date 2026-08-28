@@ -14,6 +14,11 @@ import {
   storeAssessment,
 } from "@/lib/db/assessment-cache";
 import type { Answers, CaseContext } from "@/lib/guided-flow";
+import {
+  hasNewInformation,
+  parsePartialAssessment,
+  type PartialAssessment,
+} from "@/lib/partial-assessment";
 import type { Resource } from "@/lib/resources";
 import {
   PROVINCE_IDS,
@@ -330,6 +335,97 @@ function buttonLabel(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Streaming
+// ---------------------------------------------------------------------------
+
+function sse(event: string, data: unknown): Uint8Array {
+  return new TextEncoder().encode(
+    `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+  );
+}
+
+/**
+ * Streams one model, emitting the safety verdict and the opening sentence as
+ * soon as they are complete, then the whole assessment.
+ *
+ * Returns null when the model could not be used at all, so the caller can try
+ * the next one or fall back — a stream that has already emitted a partial is
+ * committed, which is why only the first model is streamed.
+ */
+async function streamFromModel(
+  model: string,
+  requestBody: string,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+): Promise<Record<string, unknown> | null> {
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), 45_000);
+
+  try {
+    const response = await fetch(
+      `${GEMINI_BASE}/${model}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+        signal: abort.signal,
+      },
+    );
+
+    if (!response.ok || !response.body) {
+      console.warn(`${model} stream returned ${response.status}`);
+      return null;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let accumulated = "";
+    let lastPartial: PartialAssessment = {};
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Gemini's SSE frames are separated by blank lines; the last element may
+      // be an incomplete frame, so it is kept for the next chunk.
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop() ?? "";
+
+      for (const frame of frames) {
+        const line = frame.split("\n").find((l) => l.startsWith("data: "));
+        if (!line) continue;
+
+        try {
+          const payload = JSON.parse(line.slice(6));
+          const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (typeof text === "string") accumulated += text;
+        } catch {
+          // A frame that does not parse is skipped rather than aborting the
+          // stream; the accumulated text is validated in full at the end.
+          continue;
+        }
+      }
+
+      const partial = parsePartialAssessment(accumulated);
+      if (hasNewInformation(lastPartial, partial)) {
+        controller.enqueue(sse("partial", partial));
+        lastPartial = partial;
+      }
+    }
+
+    const parsed = parseModelJSON(accumulated);
+    return parsed && isValidAssessment(parsed) ? parsed : null;
+  } catch (error) {
+    console.warn(`${model} stream failed:`, error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // POST
 // ---------------------------------------------------------------------------
 
@@ -397,15 +493,8 @@ export async function POST(request: Request) {
       indicators: scopeIndicators(reference, ctx.categories),
     };
 
-    // -----------------------------------------------------------------------
-    // 3. Model
-    // -----------------------------------------------------------------------
-    try {
-      if (!GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY not configured");
-      }
-
-      const requestBody = JSON.stringify({
+    const requestPayload = () =>
+      JSON.stringify({
         systemInstruction: {
           parts: [{ text: buildSystemPrompt(lang, ctx, promptData) }],
         },
@@ -416,6 +505,78 @@ export async function POST(request: Request) {
           responseMimeType: "application/json",
         },
       });
+
+    // -----------------------------------------------------------------------
+    // 2b. Streaming
+    // -----------------------------------------------------------------------
+    // Opt-in and additive. The whole-response path below is untouched and stays
+    // the default, so a problem here degrades to the behaviour that already
+    // worked rather than breaking assessments.
+    if (body.stream === true && GEMINI_API_KEY) {
+      const payload = requestPayload();
+
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          try {
+            const result = await streamFromModel(GEMINI_MODELS[0], payload, controller);
+
+            if (result) {
+              if (cacheKey && answers) {
+                void storeAssessment({
+                  cacheKey,
+                  locale: lang,
+                  answers,
+                  context: ctx as unknown as CaseContext,
+                  response: result,
+                  model: GEMINI_MODELS[0],
+                });
+              }
+
+              void recordAssessmentEvent({
+                province: ctx.province,
+                gender: ctx.gender,
+                locale: lang,
+                categories: ctx.categories ?? [],
+                severity: result.severity as string | undefined,
+                urgent: Boolean(result.is_urgent),
+                cacheHit: false,
+                usedFallback: reference.usedFallback,
+                latencyMs: Date.now() - startedAt,
+              });
+
+              controller.enqueue(sse("complete", result));
+            } else {
+              // The client retries without streaming, which reaches the
+              // non-streaming models and the offline fallback.
+              controller.enqueue(sse("retry", { reason: "stream_unusable" }));
+            }
+          } catch (error) {
+            console.error("Streaming assessment failed:", error);
+            controller.enqueue(sse("retry", { reason: "stream_failed" }));
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-store, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. Model
+    // -----------------------------------------------------------------------
+    try {
+      if (!GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY not configured");
+      }
+
+      const requestBody = requestPayload();
 
       let lastError: Error | null = null;
 

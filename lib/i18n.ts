@@ -165,6 +165,8 @@ export const translations = {
     aboutReadRights: "Browse your rights",
     aboutSeeResources: "See helplines and legal aid",
 
+    guidedStillWorking: "Working out your legal options and next steps...",
+
     // Rights library
     rightsTitle: "Know your rights",
     rightsIntro:
@@ -341,6 +343,8 @@ export const translations = {
     aboutLastUpdated: "یہ صفحہ بتاتا ہے کہ اگست 2026 تک حفاظت کیسے کام کرتی ہے۔",
     aboutReadRights: "اپنے حقوق دیکھیں",
     aboutSeeResources: "ہیلپ لائنیں اور قانونی مدد دیکھیں",
+
+    guidedStillWorking: "آپ کے قانونی راستے اور اگلے اقدامات تیار کیے جا رہے ہیں...",
 
     // Rights library
     rightsTitle: "اپنے حقوق جانیں",
