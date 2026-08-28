@@ -80,6 +80,18 @@ export const translations = {
     resultReportHelper:
       "This will lead you to the complaint registration page where you can take your first line of action.",
     resultNewAssessment: "Start a new assessment",
+    resultPrintHeading: "Hifazat — your rights and next steps",
+    resultPrintedOn: "Prepared on",
+    resultPrintDisclaimer:
+      "General information about Pakistani law, not legal advice. Hifazat is not a law firm and this creates no lawyer-client relationship. Take it to a lawyer before acting on it.",
+    resultPrintWarning:
+      "Anyone who finds this printout can read it. Only print it if it is safe for it to be found, and consider leaving it with someone you trust rather than taking it home.",
+    resultSaveOrPrint: "Save or print",
+    resultShare: "Share Hifazat",
+    resultShareCopied: "Link copied",
+    resultShareText:
+      "Hifazat helps you understand your rights under Pakistani law. Free and private.",
+
 
     // Resources directory
     resourcesHeading: "Resources",
@@ -259,6 +271,18 @@ export const translations = {
     resultReportHelper:
       "یہ آپ کو شکایت درج کرانے کے صفحے پر لے جائے گا جہاں آپ اپنا پہلا قدم اٹھا سکتے ہیں۔",
     resultNewAssessment: "نیا جائزہ شروع کریں",
+    resultPrintHeading: "حفاظت — آپ کے حقوق اور اگلے اقدامات",
+    resultPrintedOn: "تیاری کی تاریخ",
+    resultPrintDisclaimer:
+      "یہ پاکستانی قانون کے بارے میں عمومی معلومات ہیں، قانونی مشورہ نہیں۔ حفاظت کوئی قانونی فرم نہیں اور اس سے وکیل و مؤکل کا رشتہ قائم نہیں ہوتا۔ عمل کرنے سے پہلے کسی وکیل سے رجوع کریں۔",
+    resultPrintWarning:
+      "جسے بھی یہ پرنٹ ملے گا وہ اسے پڑھ سکتا ہے۔ صرف اسی صورت پرنٹ کریں جب اس کا مل جانا آپ کے لیے محفوظ ہو، اور اسے گھر لے جانے کے بجائے کسی قابلِ اعتماد فرد کے پاس رکھنے پر غور کریں۔",
+    resultSaveOrPrint: "محفوظ کریں یا پرنٹ کریں",
+    resultShare: "حفاظت شیئر کریں",
+    resultShareCopied: "لنک کاپی ہو گیا",
+    resultShareText:
+      "حفاظت آپ کو پاکستانی قانون کے تحت اپنے حقوق سمجھنے میں مدد دیتی ہے۔ مفت اور نجی۔",
+
 
     // Resources directory
     resourcesHeading: "وسائل",

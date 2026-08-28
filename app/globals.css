@@ -47,3 +47,75 @@ body {
 [data-locale="ur"] .font-heading {
   font-family: var(--font-urdu), sans-serif !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Print
+   ---------------------------------------------------------------------------
+   Someone printing an assessment is usually taking it somewhere: a police
+   station, a legal aid office, a family court. What they need on paper is the
+   law, the steps and the numbers — not the navigation, and not white text on a
+   teal background that costs them a cartridge and comes out unreadable on a
+   cheap printer.
+*/
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body {
+    /* The screen measure is irrelevant on paper. */
+    max-width: none !important;
+    font-size: 11pt;
+  }
+
+  /* Cards are white-on-teal on screen. On paper that is a solid block of ink,
+     so they are inverted to a bordered block instead. */
+  [class*="bg-hifazat-teal"],
+  [class*="bg-hifazat-dark-teal"],
+  [class*="bg-hifazat-red"],
+  [class*="bg-hifazat-amber"],
+  [class*="bg-hifazat-footer"] {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+
+  [class*="text-white"],
+  [class*="text-hifazat-muted"],
+  [class*="text-hifazat-teal"] {
+    color: #000 !important;
+  }
+
+  /* An action step or a helpline split across a page break is easy to miss. */
+  .print-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* A printed link is useless without its address. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    word-break: break-all;
+  }
+
+  /* Phone numbers are the point of the page; keep them prominent. */
+  a[href^="tel:"] {
+    font-weight: 700;
+  }
+}

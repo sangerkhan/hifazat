@@ -88,6 +88,7 @@ export default function AssessmentResult({
   const { locale } = useLanguage();
   const [showReferral, setShowReferral] = useState(false);
   const [referralAvailable, setReferralAvailable] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Only offer a referral once the legal desk is actually reachable. Asking
   // someone for their name and phone number and then failing is worse than not
@@ -121,6 +122,33 @@ export default function AssessmentResult({
     window.print();
   };
 
+  /**
+   * Shares Hifazat, deliberately not the assessment.
+   *
+   * A share sheet puts whatever it is given into WhatsApp, a group chat, or
+   * wherever the person taps next, and their account of what happened to them
+   * is the last thing that should travel that way by accident. So the payload
+   * is the app and what it does — useful to pass to someone who needs it,
+   * harmless if it lands in the wrong conversation.
+   */
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? window.location.origin : "https://hifazat.app";
+    const text = t(locale, "resultShareText");
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: "Hifazat", text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      // The person dismissed the share sheet, or the clipboard is unavailable.
+      // Neither is worth an error message.
+    }
+  };
+
   const primaryCategory =
     data.classifications.length > 0
       ? data.classifications[0].category_name
@@ -128,8 +156,20 @@ export default function AssessmentResult({
 
   return (
     <div className="flex flex-col gap-6 px-5 py-6 w-full max-w-[600px] lg:max-w-3xl mx-auto">
+      {/* Print header — replaces the on-screen chrome on paper */}
+      <div className="print-only mb-4">
+        <h1 className="font-heading font-serif text-2xl text-hifazat-ink">
+          {t(locale, "resultPrintHeading")}
+        </h1>
+        <p className="text-sm">
+          {t(locale, "resultPrintedOn")}{" "}
+          {new Date().toLocaleDateString(locale === "ur" ? "ur-PK" : "en-GB")}
+        </p>
+        <p className="text-sm mt-2">{t(locale, "resultPrintDisclaimer")}</p>
+      </div>
+
       {/* Header — Logo + Language Toggle */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <Link href="/">
           <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
         </Link>
@@ -137,7 +177,7 @@ export default function AssessmentResult({
       </div>
 
       {/* Top Bar — Go back + Save */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <button
           onClick={onReset}
           className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink"
@@ -175,6 +215,17 @@ export default function AssessmentResult({
           {t(locale, "save")}
         </button>
       </div>
+
+      {/* A printed assessment is a physical object that can be found. Saying so
+          is more use than any amount of on-screen privacy assurance. */}
+      <details className="no-print">
+        <summary className="text-sm text-hifazat-muted cursor-pointer">
+          {t(locale, "resultSaveOrPrint")}
+        </summary>
+        <p className="text-sm text-hifazat-ink/80 leading-relaxed mt-2 bg-hifazat-amber-light border border-hifazat-amber/40 rounded-[12px] p-3">
+          {t(locale, "resultPrintWarning")}
+        </p>
+      </details>
 
       {/* Urgent Banner */}
       {data.is_urgent && (
@@ -237,7 +288,7 @@ export default function AssessmentResult({
         {data.classifications.map((c, i) => (
           <div
             key={i}
-            className="bg-white border border-hifazat-border rounded-[24px] px-4 py-6 flex flex-col gap-4"
+            className="bg-white border border-hifazat-border rounded-[24px] px-4 py-6 flex flex-col gap-4 print-block"
           >
             <h3 className="text-[18px] font-semibold text-hifazat-ink">
               {c.indicator_name}
@@ -267,7 +318,7 @@ export default function AssessmentResult({
         {data.actions.map((a, i) => (
           <div
             key={i}
-            className="bg-hifazat-teal rounded-[24px] pb-6 pt-4 px-6 flex flex-col gap-2"
+            className="bg-hifazat-teal rounded-[24px] pb-6 pt-4 px-6 flex flex-col gap-2 print-block"
           >
             {/* Priority pill at top */}
             <span className="inline-flex self-start px-4 py-1 rounded-full bg-white text-hifazat-teal text-sm font-semibold">
@@ -310,7 +361,7 @@ export default function AssessmentResult({
         {data.resources.map((r, i) => (
           <div
             key={i}
-            className="bg-white border border-hifazat-border rounded-[24px] px-4 py-6 flex flex-col gap-2"
+            className="bg-white border border-hifazat-border rounded-[24px] px-4 py-6 flex flex-col gap-2 print-block"
           >
             <h3 className="text-base font-semibold text-hifazat-ink">
               {r.name}
@@ -366,6 +417,7 @@ export default function AssessmentResult({
 
       {/* Lawyer referral — offered after the guidance, never before it, so
           nobody has to hand over a phone number to find out their rights. */}
+      {/* Referral is an action, not a record — nothing to print. */}
       {canRefer &&
         (showReferral ? (
           <ReferralForm
@@ -376,7 +428,7 @@ export default function AssessmentResult({
             onClose={() => setShowReferral(false)}
           />
         ) : (
-          <div className="bg-hifazat-footer rounded-[24px] p-6 flex flex-col gap-3">
+          <div className="bg-hifazat-footer rounded-[24px] p-6 flex flex-col gap-3 no-print">
             <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
               {t(locale, "referralCtaTitle")}
             </h3>
@@ -422,10 +474,17 @@ export default function AssessmentResult({
         </p>
       </div>
 
+      <button
+        onClick={handleShare}
+        className="w-full py-3 text-base font-medium text-hifazat-muted no-print"
+      >
+        {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
+      </button>
+
       {/* Back home */}
       <Link
         href="/"
-        className="w-full h-[52px] bg-white text-hifazat-teal font-semibold rounded-full text-lg border border-hifazat-teal flex items-center justify-center"
+        className="w-full h-[52px] bg-white text-hifazat-teal font-semibold rounded-full text-lg border border-hifazat-teal flex items-center justify-center no-print"
       >
         {t(locale, "backHome")}
       </Link>
@@ -433,12 +492,14 @@ export default function AssessmentResult({
       {/* Start new assessment */}
       <button
         onClick={onReset}
-        className="text-base font-medium text-hifazat-muted"
+        className="text-base font-medium text-hifazat-muted no-print"
       >
         {t(locale, "resultNewAssessment")}
       </button>
 
-      <SiteFooter />
+      <div className="no-print">
+        <SiteFooter />
+      </div>
     </div>
   );
 }

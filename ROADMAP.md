@@ -122,7 +122,9 @@ lawyers, hosting, co-branding).
       makes exactly, and would cost the auditability that legal guidance needs.
       Revisit when retrieving over full statute texts or case law
       (~2,000+ chunks). Reasoning and the trigger in `docs/BACKEND.md`.
-- [ ] Shareable/printable assessment result
+- [x] Shareable/printable assessment result — real print stylesheet, safety
+      warning about physical copies, and sharing that sends the app rather than
+      the person's situation
 - [ ] Aggregate trend dashboard for partner organisations
 - [x] Desktop and tablet layouts — the global 600px cap is gone; width is now
       chosen per surface, and the directory grids on wide screens
