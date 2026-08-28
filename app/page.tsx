@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
+import SiteFooter from "@/components/SiteFooter";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
 
@@ -61,6 +62,10 @@ export default function Home() {
           <a href="tel:15">{t(locale, "callPolice")}</a>
           <a href="tel:1099">{t(locale, "callHumanRights")}</a>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <SiteFooter />
       </div>
     </div>
   );

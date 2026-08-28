@@ -91,9 +91,13 @@ lawyers, hosting, co-branding).
 - [ ] Legal definition, real examples, relevant law and section, action steps
 - [ ] Add to navigation; full EN/UR
 
-### About / methodology
-- [ ] `/about` — how the AI works, sources, limitations, disclaimer
-- [ ] Publish the verification policy: what "confirmed" means and who checked
+### About / methodology — SHIPPED
+- [x] `/about` — how the assessment works, why province matters, sources,
+      limitations, privacy, and a prominent not-legal-advice disclaimer
+- [x] Verification policy published: what "confirmed" means, and the honest
+      statement that some provinces show fewer numbers as a result
+- [x] Shared `SiteFooter` with navigation — the landing page previously had no
+      link to the directory at all
 
 ### Branding and v2 identity
 - [ ] Refreshed visual identity reflecting the expanded scope

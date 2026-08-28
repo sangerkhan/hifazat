@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
+import SiteFooter from "@/components/SiteFooter";
 import { useLanguage } from "@/lib/language-context";
 import { t, tCount, type TranslationKey } from "@/lib/i18n";
 import { filterResources, type Resource, type ResourceType } from "@/lib/resources";
@@ -220,6 +221,10 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
             </div>
           </div>
         )}
+
+        <div className="mt-8">
+          <SiteFooter />
+        </div>
       </main>
     </div>
   );

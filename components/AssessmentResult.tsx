@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
 import ReferralForm from "@/components/ReferralForm";
+import SiteFooter from "@/components/SiteFooter";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
 import type { ReferralCaseContext } from "@/lib/referral";
@@ -437,30 +438,7 @@ export default function AssessmentResult({
         {t(locale, "resultNewAssessment")}
       </button>
 
-      {/* Footer */}
-      <div className="bg-hifazat-footer rounded-[24px] p-6 flex flex-col items-center gap-4 text-center">
-        <Image
-          src="/logo.png"
-          alt="Hifazat"
-          width={120}
-          height={32}
-          className="h-6 w-auto"
-        />
-        <p className="text-sm text-hifazat-muted leading-relaxed">
-          {t(locale, "footerDescription")}
-        </p>
-        <p className="text-sm text-hifazat-muted">
-          {t(locale, "footerCredit")}{" "}
-          <a
-            href="https://www.sangerkhan.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-hifazat-ink underline"
-          >
-            {t(locale, "footerAuthor")}
-          </a>
-        </p>
-      </div>
+      <SiteFooter />
     </div>
   );
 }

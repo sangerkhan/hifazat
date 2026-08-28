@@ -153,6 +153,18 @@ export const translations = {
     referralPrivacy:
       "We pass on your answers, your name and your number, and nothing else. We do not keep a copy after it reaches the legal desk.",
 
+    // Navigation
+    navResources: "Resources",
+    navRights: "Know your rights",
+    navAbout: "About",
+    footerEmergency: "In an emergency:",
+
+    // About
+    aboutTitle: "About Hifazat",
+    aboutLastUpdated: "This page describes how Hifazat works as of August 2026.",
+    aboutReadRights: "Browse your rights",
+    aboutSeeResources: "See helplines and legal aid",
+
     // Footer
     footerDescription:
       "Hifazat is a non-profit project to facilitate victims of violence.",
@@ -301,6 +313,18 @@ export const translations = {
       "اگر ان کے رابطے سے پہلے آپ کی صورتحال بگڑ جائے تو فوراً 15 یا 1099 پر کال کریں۔",
     referralPrivacy:
       "ہم صرف آپ کے جوابات، آپ کا نام اور نمبر بھیجتے ہیں، اس کے علاوہ کچھ نہیں۔ لیگل ڈیسک تک پہنچنے کے بعد ہم اس کی نقل نہیں رکھتے۔",
+
+    // Navigation
+    navResources: "وسائل",
+    navRights: "اپنے حقوق جانیں",
+    navAbout: "تعارف",
+    footerEmergency: "ہنگامی صورتحال میں:",
+
+    // About
+    aboutTitle: "حفاظت کے بارے میں",
+    aboutLastUpdated: "یہ صفحہ بتاتا ہے کہ اگست 2026 تک حفاظت کیسے کام کرتی ہے۔",
+    aboutReadRights: "اپنے حقوق دیکھیں",
+    aboutSeeResources: "ہیلپ لائنیں اور قانونی مدد دیکھیں",
 
     // Footer
     footerDescription:
