@@ -71,13 +71,20 @@ lawyers, hosting, co-branding).
 - [ ] **Resolve FIA vs NCCIA** for cyber complaint routing — both are currently
       listed and one is likely stale.
 
-### Verified legal data in Supabase
-- [ ] Supabase project; tables for `legal_provisions`, `resources`,
-      `knowledge_chunks`, `referrals`
-- [ ] Migrate the TypeScript datasets, keeping the verification flag as a column
-- [ ] Data-access layer so the cutover is a config change
-- [ ] Anonymised interaction logging — category and severity only, no PII
-- [ ] Add a Supabase referral sink
+### Verified legal data in Supabase — BUILT, awaiting a project
+- [x] Schema, RLS and helper functions (`supabase/migrations/`), verified
+      against a real PostgreSQL 16 instance
+- [x] Generated seed from the TypeScript datasets (`npm run seed:generate`),
+      preserving the verification verdict on re-apply
+- [x] Data-access layer with in-memory caching and automatic fallback to the
+      bundled data, so the cutover is a config change and an outage is invisible
+- [x] Anonymised interaction logging — category, severity, province, latency;
+      no PII, no narrative
+- [x] Supabase referral sink alongside Sheets and email
+- [x] Reviewed answer cache, so common situations are served from Postgres and
+      the legal desk can correct the guidance most people actually receive
+- [ ] Create the project and set `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] Work the verification list in the table editor rather than by pull request
 
 ### Know Your Rights library
 - [ ] `/rights` — browsable explainers per NCSW category, filtered by province
@@ -98,13 +105,36 @@ lawyers, hosting, co-branding).
 - [ ] All three feed the same referral pipeline — `source` is already modelled
 
 ### Later
-- [ ] RAG with pgvector, replacing full knowledge-base injection
+- [ ] Streaming responses — the largest remaining perceived-latency win, and the
+      one the prompt scoping does not address
+- [ ] ~~RAG with pgvector~~ — **deliberately deferred.** The corpus is 41
+      indicators and 29 statutes; similarity search over that would add an
+      embedding round trip and non-determinism to a selection a WHERE clause
+      makes exactly, and would cost the auditability that legal guidance needs.
+      Revisit when retrieving over full statute texts or case law
+      (~2,000+ chunks). Reasoning and the trigger in `docs/BACKEND.md`.
 - [ ] Shareable/printable assessment result
 - [ ] Aggregate trend dashboard for partner organisations
 - [ ] Desktop and tablet layouts
 - [ ] Native iOS and Android
 - [ ] Legal admin portal, once the network reaches 100 lawyers
 - [ ] Sandbox / game-style environments for school and college workshops
+
+---
+
+## Performance
+
+Measured system prompt size per assessment, after scoping the corpus by case:
+
+| Case | Before | After |
+|---|---|---|
+| Cyber harassment, Sindh | 11,710 tok | 5,497 tok |
+| Domestic violence, Punjab | 11,710 tok | 9,296 tok |
+| Workplace harassment, ICT | 11,710 tok | 5,142 tok |
+| Free text, no context | 11,710 tok | 12,118 tok |
+
+Free text cannot be scoped — there is nothing to scope on — which is an argument
+for steering people into the guided flow.
 
 ---
 

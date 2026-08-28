@@ -771,11 +771,14 @@ function servesGender(resource: Resource, gender: Gender | undefined): boolean {
 }
 
 /**
- * Resources relevant to a person, sorted by priority. National entries are
- * always included alongside the province-specific ones — a woman in Balochistan
- * should still see 15, 1099 and the cyber crime route.
+ * Filters an arbitrary resource list. Separated from `getResources` so the same
+ * predicate serves both the bundled dataset and rows loaded from Supabase — the
+ * directory must behave identically whichever supplied the data.
  */
-export function getResources(query: ResourceQuery = {}): Resource[] {
+export function filterResources(
+  source: Resource[],
+  query: ResourceQuery = {},
+): Resource[] {
   const {
     province,
     gender,
@@ -787,7 +790,7 @@ export function getResources(query: ResourceQuery = {}): Resource[] {
 
   const needle = search?.trim().toLowerCase();
 
-  return RESOURCES.filter((r) => {
+  return source.filter((r) => {
     if (!includeUnconfirmed && r.verification !== "confirmed") return false;
 
     if (province && !r.scope.includes("national") && !r.scope.includes(province)) {
@@ -811,6 +814,19 @@ export function getResources(query: ResourceQuery = {}): Resource[] {
 
     return true;
   }).sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+}
+
+/**
+ * Resources relevant to a person, from the bundled dataset. National entries are
+ * always included alongside the province-specific ones — a woman in Balochistan
+ * should still see 15, 1099 and the cyber crime route.
+ *
+ * This reads the compiled-in data, which is the fallback path. Anything that can
+ * be asynchronous should prefer the database via lib/db/reference.ts, so that a
+ * number the legal desk verifies goes live without a deploy.
+ */
+export function getResources(query: ResourceQuery = {}): Resource[] {
+  return filterResources(RESOURCES, query);
 }
 
 /**

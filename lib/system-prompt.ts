@@ -1,14 +1,14 @@
-import { NCSW_KNOWLEDGE_BASE } from "./knowledge-base";
 import { LEGAL_PROVISIONS } from "./legal-provisions";
-import { getResourcesForPrompt } from "./resources";
 import {
-  getApplicableLaw,
   getDomesticViolenceAct,
   getProvinceBriefing,
   type CaseCategory,
   type Gender,
+  type LegalInstrument,
   type ProvinceId,
 } from "./provinces";
+import type { Resource } from "./resources";
+import type { NcswIndicator } from "./db/reference";
 
 /**
  * Facts about the case that let us scope the prompt before the model sees it.
@@ -24,6 +24,79 @@ export interface PromptContext {
   stillMarried?: boolean;
   hasChildren?: boolean;
   informationOnly?: boolean;
+}
+
+/**
+ * Which parts of the penalties-and-procedure reference are worth spending
+ * tokens on for this case.
+ *
+ * The whole blob is about 2,400 tokens and was previously injected on every
+ * request, so a cyber-harassment prompt carried the full workplace harassment
+ * complaint procedure and the honour-crimes amendment. The Penal Code sections
+ * are always included because classifications routinely cite them across
+ * categories; everything else is opt-in by category.
+ */
+function scopedProvisions(
+  categories: CaseCategory[] | undefined,
+  province: ProvinceId | undefined,
+): Record<string, unknown> {
+  const all = { ...(LEGAL_PROVISIONS as unknown as Record<string, unknown>) };
+
+  // provincial_laws holds an entry for every province. Handing the whole block
+  // to the model puts Punjab's act in front of a woman in Sindh, which is
+  // precisely the failure the APPLICABLE LAW section exists to prevent — the
+  // instruction not to cite it is undermined by showing it anyway. Narrow it to
+  // the one province that applies, or drop it when we do not know.
+  const provincialKeyByProvince: Record<ProvinceId, string> = {
+    punjab: "punjab",
+    sindh: "sindh",
+    kp: "kpk",
+    balochistan: "balochistan",
+    ict: "islamabad",
+    gb: "gb_ajk",
+    ajk: "gb_ajk",
+  };
+
+  const provincialLaws = all.provincial_laws as Record<string, unknown> | undefined;
+  if (provincialLaws) {
+    if (province && provincialKeyByProvince[province] in provincialLaws) {
+      const key = provincialKeyByProvince[province];
+      all.provincial_laws = {
+        note: provincialLaws.note,
+        [key]: provincialLaws[key],
+      };
+    } else {
+      delete all.provincial_laws;
+    }
+  }
+
+  if (!categories?.length) return all;
+
+  const wanted = new Set<string>(["ppc_sections"]);
+  const include = (category: CaseCategory, ...keys: string[]) => {
+    if (categories.includes(category)) keys.forEach((k) => wanted.add(k));
+  };
+
+  include("workplace", "workplace_harassment");
+  include("cyber", "peca_2016");
+  include("sexual", "peca_2016");
+  include("economic", "womens_property_rights", "anti_women_practices");
+  include("family_law", "anti_women_practices", "provincial_laws");
+  include("harmful_practice", "honour_crimes", "anti_women_practices");
+  include("domestic", "domestic_violence", "provincial_laws");
+  include("physical", "domestic_violence", "honour_crimes");
+  include("child", "anti_women_practices", "provincial_laws");
+
+  // The transgender protections are gender-driven rather than category-driven,
+  // so they are added by the caller's gender scoping upstream; include them
+  // whenever nothing else narrowed the set meaningfully.
+  if (wanted.size <= 1) return all;
+
+  const out: Record<string, unknown> = {};
+  for (const key of wanted) {
+    if (key in all) out[key] = all[key];
+  }
+  return out;
 }
 
 /**
@@ -89,31 +162,45 @@ document that matters, the fact that consent is not needed, the requirement to
 use a government hospital. Bold phrases, never whole sentences.`;
 }
 
+/**
+ * The already-scoped corpus this prompt is built from. Resolving it is the
+ * caller's job, so the prompt does not care whether it came from Supabase or
+ * from the bundled TypeScript fallback.
+ */
+export interface PromptData {
+  law: LegalInstrument[];
+  resources: Resource[];
+  indicators: NcswIndicator[];
+}
+
 export function buildSystemPrompt(
   locale: "en" | "ur" = "en",
   ctx: PromptContext = {},
+  data: PromptData = { law: [], resources: [], indicators: [] },
 ): string {
   const langInstruction =
     locale === "ur"
       ? `CRITICAL LANGUAGE RULE: The user's interface is set to URDU. You MUST write ALL text fields in Urdu (validation, explanation, step, details, why, note, label, description, indicator_name, category_name, severity_explanation). Legal references (law names, section numbers) may remain in English. Do NOT respond in English even if the user's input is in English.`
       : `CRITICAL LANGUAGE RULE: The user's interface is set to ENGLISH. You MUST write ALL text fields in English (validation, explanation, step, details, why, note, label, description, indicator_name, category_name, severity_explanation).`;
 
-  // Scope law and resources in code. Previously the prompt carried every
-  // provision in the country and instructed the model not to cite the wrong
-  // ones, which is a request rather than a guarantee. Now the model is simply
-  // never shown a statute that does not operate where this person lives, or a
-  // helpline whose number we have not verified.
-  const applicableLaw = getApplicableLaw({
-    province: ctx.province,
-    gender: ctx.gender,
-    categories: ctx.categories,
-  });
+  // Law, resources and indicators arrive already scoped to this person's
+  // province, gender and case categories. The prompt therefore contains no
+  // statute that does not operate where they live and no helpline we have not
+  // verified — a guarantee enforced by the query, not by asking the model
+  // nicely, which is what the previous version did.
+  const applicableLaw = data.law;
 
-  const availableResources = getResourcesForPrompt({
-    province: ctx.province,
-    gender: ctx.gender,
-    categories: ctx.categories,
-  });
+  const availableResources = data.resources.map((r) => ({
+    name: r.name,
+    phone: r.phone,
+    website: r.website,
+    whatsapp: r.whatsapp,
+    hours: r.hours,
+    serves: r.serves,
+    handles: r.handles,
+    scope: r.scope,
+    description: r.description,
+  }));
 
   const dvAct = getDomesticViolenceAct(ctx.province);
   const isDomesticCase =
@@ -207,15 +294,31 @@ Assess on the specific acts described, not the broad category. Weigh frequency, 
 - "serious": clearly a defined form of violence or harassment; formal action strongly recommended.
 - "critical": danger to life or safety, ongoing sexual violence, honour-based threats, active stalking with threats.
 
-## SUPPORTING REFERENCE — NCSW INDICATORS
-${JSON.stringify(NCSW_KNOWLEDGE_BASE, null, 2)}
+## NCSW INDICATORS
+Classify against these. They are the indicators relevant to what this person
+described; pick the most specific match for each distinct thing that happened.
+
+${JSON.stringify(
+  data.indicators.map((i) => ({
+    id: i.id,
+    category_id: i.categoryId,
+    category_name: i.categoryName,
+    indicator: i.indicator,
+    description: i.description,
+    severity: i.severity,
+    examples: i.examples,
+    legal_ref_extra: i.legalRefExtra,
+  })),
+  null,
+  2,
+)}
 
 ## SUPPORTING REFERENCE — PENALTIES AND PROCEDURE
 Use these for penalty figures and complaint procedure detail. Where this section
 and the APPLICABLE LAW section disagree about whether something applies to this
 person, APPLICABLE LAW wins.
 
-${JSON.stringify(LEGAL_PROVISIONS, null, 2)}
+${JSON.stringify(scopedProvisions(ctx.categories, ctx.province), null, 2)}
 
 ## OUTPUT FORMAT
 Respond with ONLY a valid JSON object. No markdown, no preamble, no text outside the JSON.

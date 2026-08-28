@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import { buildSystemPrompt, type PromptContext } from "@/lib/system-prompt";
-import { getResources } from "@/lib/resources";
+import {
+  getReferenceData,
+  scopeIndicators,
+  scopeLaw,
+  scopeResources,
+} from "@/lib/db/reference";
+import {
+  computeCacheKey,
+  lookupCachedAssessment,
+  recordAssessmentEvent,
+  recordCacheHit,
+  storeAssessment,
+} from "@/lib/db/assessment-cache";
+import type { Answers, CaseContext } from "@/lib/guided-flow";
+import type { Resource } from "@/lib/resources";
 import {
   PROVINCE_IDS,
   type CaseCategory,
@@ -126,6 +140,28 @@ function sanitiseContext(raw: unknown): PromptContext {
   return ctx;
 }
 
+/**
+ * Answers are only ever used to derive a cache key and to store alongside the
+ * cached guidance for the legal desk to read, so the shape is all that needs
+ * checking: a map of step id to a list of option ids. Anything else is dropped.
+ */
+function sanitiseAnswers(raw: unknown): Answers | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+
+  const out: Answers = {};
+  for (const [stepId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^[a-zA-Z]{1,40}$/.test(stepId)) continue;
+    if (!Array.isArray(value)) continue;
+
+    const options = value.filter(
+      (v): v is string => typeof v === "string" && /^[a-z0-9_]{1,60}$/.test(v),
+    );
+    if (options.length) out[stepId] = options;
+  }
+
+  return Object.keys(out).length ? out : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Fallback
 // ---------------------------------------------------------------------------
@@ -137,7 +173,11 @@ function sanitiseContext(raw: unknown): PromptContext {
  * fallback told everyone to call the Punjab women's helpline, including people
  * in Sindh and Balochistan where 1043 does not answer.
  */
-function getFallbackResponse(input: string, ctx: PromptContext) {
+function getFallbackResponse(
+  input: string,
+  ctx: PromptContext,
+  availableResources: Resource[],
+) {
   const text = input.toLowerCase();
 
   const match = (...needles: string[]) => needles.some((n) => text.includes(n));
@@ -200,11 +240,14 @@ function getFallbackResponse(input: string, ctx: PromptContext) {
     };
   }
 
-  const resources = getResources({
-    province: ctx.province,
-    gender: ctx.gender,
-    categories,
-  }).slice(0, 4);
+  // Resources are passed in already scoped to this person's province and
+  // gender, from the database where it is configured and from the bundled
+  // dataset otherwise. Narrowed once more here to what this classification is
+  // actually about.
+  const matching = availableResources.filter((r) =>
+    r.handles.some((h) => categories.includes(h)),
+  );
+  const resources = (matching.length ? matching : availableResources).slice(0, 4);
 
   // Prefer a helpline dedicated to this province over the national one: for a
   // domestic case in Punjab, 1043 is staffed by women and can arrange a VAW
@@ -291,6 +334,8 @@ function buttonLabel(name: string): string {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
+  const startedAt = Date.now();
+
   try {
     const body = await request.json();
     const { input, locale } = body;
@@ -306,6 +351,55 @@ export async function POST(request: Request) {
 
     const trimmedInput = input.trim().slice(0, 8000);
 
+    // The guided flow sends its raw answers so an identical situation can be
+    // recognised. The key is derived here rather than accepted from the client:
+    // a caller that could choose its own key could read another situation's
+    // cached guidance, or poison the entry every future user in that situation
+    // receives.
+    const answers = sanitiseAnswers(body.answers);
+    const cacheable = body.cacheable === true && answers !== undefined;
+    const cacheKey = cacheable ? computeCacheKey(answers!, lang) : undefined;
+
+    // -----------------------------------------------------------------------
+    // 1. Cache
+    // -----------------------------------------------------------------------
+    if (cacheKey) {
+      const cached = await lookupCachedAssessment(cacheKey);
+      if (cached) {
+        recordCacheHit(cacheKey);
+        void recordAssessmentEvent({
+          province: ctx.province,
+          gender: ctx.gender,
+          locale: lang,
+          categories: ctx.categories ?? [],
+          severity: (cached.response as { severity?: string }).severity,
+          urgent: Boolean((cached.response as { is_urgent?: boolean }).is_urgent),
+          cacheHit: true,
+          usedFallback: false,
+          latencyMs: Date.now() - startedAt,
+        });
+        return NextResponse.json(cached.response);
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. Scoped corpus — from Supabase where configured, bundled data otherwise
+    // -----------------------------------------------------------------------
+    const reference = await getReferenceData();
+    const scope = {
+      province: ctx.province,
+      gender: ctx.gender,
+      categories: ctx.categories,
+    };
+    const promptData = {
+      law: scopeLaw(reference, scope),
+      resources: scopeResources(reference, scope),
+      indicators: scopeIndicators(reference, ctx.categories),
+    };
+
+    // -----------------------------------------------------------------------
+    // 3. Model
+    // -----------------------------------------------------------------------
     try {
       if (!GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY not configured");
@@ -313,7 +407,7 @@ export async function POST(request: Request) {
 
       const requestBody = JSON.stringify({
         systemInstruction: {
-          parts: [{ text: buildSystemPrompt(lang, ctx) }],
+          parts: [{ text: buildSystemPrompt(lang, ctx, promptData) }],
         },
         contents: [{ role: "user", parts: [{ text: trimmedInput }] }],
         generationConfig: {
@@ -359,6 +453,31 @@ export async function POST(request: Request) {
 
           const parsed = parseModelJSON(rawText);
           if (parsed && isValidAssessment(parsed)) {
+            // Store for the next person in the same situation. Not awaited: the
+            // answer is ready and caching is an optimisation, not a dependency.
+            if (cacheKey && answers) {
+              void storeAssessment({
+                cacheKey,
+                locale: lang,
+                answers,
+                context: ctx as unknown as CaseContext,
+                response: parsed,
+                model,
+              });
+            }
+
+            void recordAssessmentEvent({
+              province: ctx.province,
+              gender: ctx.gender,
+              locale: lang,
+              categories: ctx.categories ?? [],
+              severity: parsed.severity as string | undefined,
+              urgent: Boolean(parsed.is_urgent),
+              cacheHit: false,
+              usedFallback: reference.usedFallback,
+              latencyMs: Date.now() - startedAt,
+            });
+
             return NextResponse.json(parsed);
           }
 
@@ -374,7 +493,24 @@ export async function POST(request: Request) {
       throw lastError || new Error("All models failed");
     } catch (aiError) {
       console.error("Assessment model error, using fallback:", aiError);
-      return NextResponse.json(getFallbackResponse(trimmedInput, ctx));
+
+      const fallback = getFallbackResponse(trimmedInput, ctx, promptData.resources);
+
+      void recordAssessmentEvent({
+        province: ctx.province,
+        gender: ctx.gender,
+        locale: lang,
+        categories: ctx.categories ?? [],
+        severity: fallback.severity,
+        urgent: fallback.is_urgent,
+        cacheHit: false,
+        usedFallback: true,
+        latencyMs: Date.now() - startedAt,
+      });
+
+      // Deliberately not cached. The offline fallback is a degraded answer and
+      // must not become the stored answer for that situation.
+      return NextResponse.json(fallback);
     }
   } catch (error) {
     console.error("Assessment error:", error);

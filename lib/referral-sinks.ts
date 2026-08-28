@@ -13,6 +13,7 @@
  */
 
 import { toFlatRow, type ReferralRecord } from "./referral";
+import { getServiceClient, isDatabaseConfigured } from "./db/client";
 
 export interface DeliveryOutcome {
   sink: string;
@@ -193,8 +194,61 @@ const consoleSink: ReferralSink = {
 // Dispatch
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Supabase
+// ---------------------------------------------------------------------------
+
+/**
+ * Persists the referral so the legal desk has a queue with state — assigned,
+ * contacted, closed — rather than a spreadsheet row and an email thread. The
+ * `referral_queue` view orders it by urgency.
+ *
+ * Deliberately listed alongside the Sheet and the email rather than replacing
+ * them: a database row nobody is watching does not get a case picked up, so a
+ * notification channel should stay configured too.
+ */
+const supabaseSink: ReferralSink = {
+  name: "supabase",
+
+  isConfigured() {
+    return isDatabaseConfigured();
+  },
+
+  async deliver(record) {
+    const client = getServiceClient();
+    if (!client) throw new Error("supabase client unavailable");
+
+    const { error } = await client.from("referrals").insert({
+      reference: record.reference,
+      received_at: record.receivedAt,
+      category: record.category,
+      category_label: record.categoryLabel,
+      urgency: record.urgency,
+      name: record.name,
+      phone: record.phone,
+      email: record.email ?? null,
+      city: record.city ?? null,
+      safe_to_call: record.safeToCall,
+      best_time: record.bestTime,
+      province: record.context?.province ?? null,
+      gender: record.context?.gender ?? null,
+      relationship: record.context?.relationship ?? null,
+      still_married: record.context?.stillMarried ?? null,
+      has_children: record.context?.hasChildren ?? null,
+      information_only: record.context?.informationOnly ?? null,
+      assessment_category: record.assessmentCategory ?? null,
+      assessment_severity: record.assessmentSeverity ?? null,
+      locale: record.locale ?? "en",
+      narrative: record.narrative,
+      source: record.source,
+    });
+
+    if (error) throw error;
+  },
+};
+
 /** Real destinations, in the order they are attempted. */
-const PRIMARY_SINKS: ReferralSink[] = [googleSheetsSink, emailSink];
+const PRIMARY_SINKS: ReferralSink[] = [supabaseSink, googleSheetsSink, emailSink];
 
 export function getConfiguredSinks(): ReferralSink[] {
   const configured = PRIMARY_SINKS.filter((s) => s.isConfigured());

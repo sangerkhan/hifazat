@@ -152,6 +152,13 @@ export default function GuidedPage() {
           input: body || "I need help understanding my rights.",
           locale,
           context,
+          // Sent so an identical situation can be served from the reviewed
+          // answer cache instead of regenerated. The server derives the key
+          // itself; these are never trusted as one.
+          answers,
+          // Anything the person wrote in their own words makes this situation
+          // theirs alone, so it must not be cached or served to anyone else.
+          cacheable: !overrideNarrative && additionalText.trim().length === 0,
         }),
       });
 
