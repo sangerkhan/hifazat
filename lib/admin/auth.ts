@@ -102,7 +102,12 @@ export const SESSION_COOKIE_OPTIONS = {
   // Vercel terminates TLS, so this is always safe in production. Left off in
   // development so the cookie works over plain http on localhost.
   secure: process.env.NODE_ENV === "production",
-  path: "/admin",
+  // Must be "/" rather than "/admin": the admin pages live under /admin but the
+  // actions they call live under /api/admin, and a cookie scoped to /admin is
+  // not sent to /api/admin. Scoping it narrowly broke every write from the UI
+  // while leaving page loads working, which is exactly the kind of bug that
+  // survives a casual click-through.
+  path: "/",
   maxAge: SESSION_HOURS * 60 * 60,
 };
 

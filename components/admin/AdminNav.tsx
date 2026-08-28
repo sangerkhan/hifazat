@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 // Extended as each screen is built, so the nav never points at a 404.
-const LINKS = [{ href: "/admin", label: "Overview" }];
+const LINKS = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/resources", label: "Verify helplines" },
+];
 
 export default function AdminNav() {
   const pathname = usePathname();

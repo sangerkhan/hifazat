@@ -94,6 +94,29 @@ describe("session tokens", () => {
   });
 });
 
+describe("session cookie options", () => {
+  // Regression: the cookie was originally scoped to path "/admin". Pages under
+  // /admin still loaded, so a click-through looked fine — but every write goes
+  // to /api/admin/*, which that path does not cover, so no action could ever
+  // save. The scope has to span both trees.
+  it("is scoped to a path that covers both /admin and /api/admin", () => {
+    const { path } = auth.SESSION_COOKIE_OPTIONS;
+    expect(path).toBe("/");
+    expect("/admin/resources".startsWith(path)).toBe(true);
+    expect("/api/admin/resources".startsWith(path)).toBe(true);
+  });
+
+  it("is httpOnly and same-site, so script and cross-site requests cannot use it", () => {
+    expect(auth.SESSION_COOKIE_OPTIONS.httpOnly).toBe(true);
+    expect(auth.SESSION_COOKIE_OPTIONS.sameSite).toBe("lax");
+  });
+
+  it("expires rather than persisting indefinitely", () => {
+    expect(auth.SESSION_COOKIE_OPTIONS.maxAge).toBeGreaterThan(0);
+    expect(auth.SESSION_COOKIE_OPTIONS.maxAge).toBeLessThanOrEqual(12 * 60 * 60);
+  });
+});
+
 describe("login rate limiting", () => {
   it("allows a reasonable number of attempts then blocks", () => {
     const key = `test-${Math.random()}`;
