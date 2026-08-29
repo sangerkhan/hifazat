@@ -6,6 +6,15 @@ import Image from "next/image";
 import LanguageToggle from "@/components/LanguageToggle";
 import ReferralForm from "@/components/ReferralForm";
 import SiteFooter from "@/components/SiteFooter";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import {
+  ArrowLeftIcon,
+  GlobeIcon,
+  PhoneIcon,
+  PrinterIcon,
+  ShareIcon,
+} from "@/components/ui/Icon";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
 import type { ReferralCaseContext } from "@/lib/referral";
@@ -155,7 +164,7 @@ export default function AssessmentResult({
       : "";
 
   return (
-    <div className="flex flex-col gap-6 px-5 py-6 w-full max-w-[600px] lg:max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6 px-5 py-6 w-full max-w-[620px] lg:max-w-[1120px] mx-auto">
       {/* Print header — replaces the on-screen chrome on paper */}
       <div className="print-only mb-4">
         <h1 className="font-heading font-serif text-2xl text-hifazat-ink">
@@ -170,50 +179,32 @@ export default function AssessmentResult({
 
       {/* Header — Logo + Language Toggle */}
       <div className="flex items-center justify-between no-print">
-        <Link href="/">
+        <Link href="/" className="tappable inline-flex items-center min-h-[44px] pe-3">
           <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
         </Link>
         <LanguageToggle />
       </div>
 
       {/* Top Bar — Go back + Save */}
-      <div className="flex items-center justify-between no-print">
-        <button
+      <div className="flex items-center gap-3 no-print">
+        <Button
           onClick={onReset}
-          className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink"
+          variant="ghost"
+          fullWidth={false}
+          icon={<ArrowLeftIcon size={20} />}
+          className="!px-4"
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            className="rtl:rotate-180"
-          >
-            <path
-              d="M12.5 15L7.5 10L12.5 5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
           {t(locale, "goBack")}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleSave}
-          className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-hifazat-dark-teal text-base font-semibold text-white"
+          variant="surface"
+          fullWidth={false}
+          icon={<PrinterIcon size={18} />}
+          className="!px-4 ms-auto"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path
-              d="M10 3.75v8.75m0 0l3.75-3.75m-3.75 3.75L6.25 8.75M3.75 16.25h12.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
           {t(locale, "save")}
-        </button>
+        </Button>
       </div>
 
       {/* A printed assessment is a physical object that can be found. Saying so
@@ -229,62 +220,61 @@ export default function AssessmentResult({
 
       {/* Urgent Banner */}
       {data.is_urgent && (
-        <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[24px] p-5 text-center flex flex-col gap-4">
+        <Card tone="danger" elevation="soft" className="border-2 p-5 text-center flex flex-col gap-4">
           <p className="font-heading font-serif text-xl text-hifazat-ink">
             {t(locale, "resultUrgent")}
           </p>
-          <div className="flex flex-col gap-3">
-            <a
-              href="tel:15"
-              className="flex items-center justify-center w-full py-3.5 bg-hifazat-red text-white font-semibold rounded-full text-base"
-            >
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button href="tel:15" variant="danger" icon={<PhoneIcon size={18} />}>
               {t(locale, "resultCallPolice")}
-            </a>
-            <a
-              href="tel:1099"
-              className="flex items-center justify-center w-full py-3.5 bg-hifazat-red text-white font-semibold rounded-full text-base"
-            >
+            </Button>
+            <Button href="tel:1099" variant="danger" icon={<PhoneIcon size={18} />}>
               {t(locale, "resultCallHR")}
-            </a>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Validation — "What you describe is recognised as" */}
-      <div className="flex flex-col gap-2">
-        <p className="text-base text-hifazat-ink font-medium">
-          {t(locale, "resultRecognisedAs")}
-        </p>
-        <h1 className="font-heading font-serif text-[40px] leading-[1.3] text-hifazat-ink">
-          {primaryCategory}
-        </h1>
+      {/* What this is: the label, the sentence and the severity are one
+          statement, so they sit together rather than as three loose blocks. */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <p className="text-base text-hifazat-muted font-medium">
+            {t(locale, "resultRecognisedAs")}
+          </p>
+          <h1 className="font-heading font-serif text-[36px] lg:text-[44px] leading-[1.15] text-hifazat-ink">
+            {primaryCategory}
+          </h1>
+        </div>
+
+        <p className="text-base text-hifazat-ink/80 leading-relaxed">{data.validation}</p>
+
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm text-hifazat-muted font-medium">
+            {t(locale, "resultLegalSeverity")}
+          </span>
+          <span
+            className={`inline-flex px-4 py-1 rounded-full text-sm font-semibold ${severityColor}`}
+          >
+            {severityLabel}
+          </span>
+        </div>
       </div>
 
-      {/* Validation text */}
-      <p className="text-base text-hifazat-muted leading-relaxed">
-        {data.validation}
-      </p>
-
-      {/* Severity */}
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-hifazat-muted font-semibold">
-          {t(locale, "resultLegalSeverity")}
-        </p>
-        <span
-          className={`inline-flex self-start px-6 py-1 rounded-full text-base font-semibold ${severityColor}`}
-        >
-          {severityLabel}
-        </span>
-      </div>
-
-      {/* Divider */}
-      <hr className="border-hifazat-border" />
+      {/* Two columns on desktop: understanding on the left, acting on the
+          right. On a phone this is one column in the same order, so the
+          explanation still comes before the steps. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10 lg:items-start">
+        {/* The explanation is usually shorter than the steps, so on desktop it
+            stays with you rather than scrolling away and leaving a void. */}
+        <div className="flex flex-col gap-8 lg:sticky lg:top-6">
 
       {/* Legal breakdown */}
-      <h2 className="font-heading font-serif text-[32px] leading-[1.3] text-hifazat-ink">
-        {t(locale, "resultClassificationsHeading")}
-      </h2>
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
+          {t(locale, "resultClassificationsHeading")}
+        </h2>
+        <div className="flex flex-col gap-3">
         {data.classifications.map((c, i) => (
           <div
             key={i}
@@ -305,16 +295,19 @@ export default function AssessmentResult({
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      </section>
+        </div>
 
-      {/* Divider */}
-      <hr className="border-hifazat-border" />
+        {/* Acting */}
+        <div className="flex flex-col gap-8 mt-8 lg:mt-0">
 
       {/* What you can do */}
-      <h2 className="font-heading font-serif text-[32px] leading-[1.3] text-hifazat-ink">
-        {t(locale, "resultActionsHeading")}
-      </h2>
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
+          {t(locale, "resultActionsHeading")}
+        </h2>
+        <div className="flex flex-col gap-3">
         {data.actions.map((a, i) => (
           <div
             key={i}
@@ -348,72 +341,60 @@ export default function AssessmentResult({
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Divider */}
-      <hr className="border-hifazat-border" />
+        </div>
+      </section>
 
       {/* Resources for you */}
-      <h2 className="font-heading font-serif text-[32px] leading-[1.3] text-hifazat-ink">
-        {t(locale, "resultResourcesHeading")}
-      </h2>
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
+          {t(locale, "resultResourcesHeading")}
+        </h2>
+        <div className="flex flex-col gap-3">
         {data.resources.map((r, i) => (
-          <div
-            key={i}
-            className="bg-white border border-hifazat-border rounded-[24px] px-4 py-6 flex flex-col gap-2 print-block"
-          >
-            <h3 className="text-base font-semibold text-hifazat-ink">
-              {r.name}
-            </h3>
-            {/* Some entries are reached through an office or website rather
-                than a number, so an empty tel: link must not be rendered. */}
-            {r.phone && (
-              <a
-                href={`tel:${r.phone}`}
-                dir="ltr"
-                className="font-heading font-serif text-[32px] leading-none text-hifazat-teal"
-              >
-                {r.phone}
-              </a>
-            )}
-            {r.website && (
-              <a
-                href={r.website.startsWith("http") ? r.website : `https://${r.website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-heading font-serif text-[32px] leading-none text-hifazat-teal"
-              >
-                {r.website.replace(/^https?:\/\//, "")}
-              </a>
-            )}
-            <p className="text-base text-hifazat-muted leading-relaxed">
-              {r.why}
-            </p>
-          </div>
+          <Card key={i} className="px-4 py-5 flex flex-col gap-3 print-block">
+            <h3 className="text-base font-semibold text-hifazat-ink">{r.name}</h3>
+            <p className="text-base text-hifazat-muted leading-relaxed">{r.why}</p>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              {r.phone && (
+                <Button href={`tel:${r.phone}`} icon={<PhoneIcon size={18} />}>
+                  <span dir="ltr">{r.phone}</span>
+                </Button>
+              )}
+              {r.website && (
+                <Button
+                  href={r.website.startsWith("http") ? r.website : `https://${r.website}`}
+                  variant="surface"
+                  icon={<GlobeIcon size={18} />}
+                >
+                  {t(locale, "resourcesWebsite")}
+                </Button>
+              )}
+            </div>
+
+          </Card>
         ))}
-      </div>
+        </div>
+      </section>
 
-      {/* Divider */}
-      <hr className="border-hifazat-border" />
-
-      {/* Note */}
+      {/* Note — grouped as one block so the heading, the note and the reason
+          read as one thought rather than three loose paragraphs. */}
       {data.note && (
-        <>
-          <div className="flex flex-col gap-4">
-            <h3 className="font-heading font-serif text-[32px] leading-[1.3] text-hifazat-ink">
-              {t(locale, "resultNote")}
-            </h3>
-            <p className="text-base font-bold text-hifazat-ink leading-relaxed">
-              {data.note}
-            </p>
-            <p className="text-base text-hifazat-ink leading-relaxed">
-              {data.severity_explanation}
-            </p>
-          </div>
-          <hr className="border-hifazat-border" />
-        </>
+        <Card tone="sunken" elevation="none" className="p-5 flex flex-col gap-2">
+          <h3 className="text-base font-semibold text-hifazat-ink">
+            {t(locale, "resultNote")}
+          </h3>
+          <p className="text-base font-semibold text-hifazat-ink leading-relaxed">
+            {data.note}
+          </p>
+          <p className="text-base text-hifazat-muted leading-relaxed">
+            {data.severity_explanation}
+          </p>
+        </Card>
       )}
+
+        </div>
+      </div>
 
       {/* Lawyer referral — offered after the guidance, never before it, so
           nobody has to hand over a phone number to find out their rights. */}
@@ -447,55 +428,45 @@ export default function AssessmentResult({
       {/* Dynamic CTA */}
       <div className="flex flex-col gap-2 items-center">
         {data.primary_action ? (
-          <a
+          <Button
             href={
               data.primary_action.type === "call"
                 ? `tel:${data.primary_action.value}`
                 : data.primary_action.value
             }
-            target={data.primary_action.type === "link" ? "_blank" : undefined}
-            rel={data.primary_action.type === "link" ? "noopener noreferrer" : undefined}
-            className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg flex items-center justify-center"
+            size="lg"
+            icon={
+              data.primary_action.type === "call" ? (
+                <PhoneIcon size={20} />
+              ) : (
+                <GlobeIcon size={20} />
+              )
+            }
           >
             {data.primary_action.label}
-          </a>
+          </Button>
         ) : (
-          <a
-            href="https://complaint.hrs.gov.pk/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg flex items-center justify-center"
-          >
+          <Button href="https://complaint.hrs.gov.pk/" size="lg" icon={<GlobeIcon size={20} />}>
             {t(locale, "resultReportComplaint")}
-          </a>
+          </Button>
         )}
         <p className="text-sm text-hifazat-muted text-center leading-relaxed">
           {data.primary_action?.description || t(locale, "resultReportHelper")}
         </p>
       </div>
 
-      <button
-        onClick={handleShare}
-        className="w-full py-3 text-base font-medium text-hifazat-muted no-print"
-      >
-        {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
-      </button>
+      <div className="flex flex-col sm:flex-row gap-3 no-print">
+        <Button onClick={handleShare} variant="surface" icon={<ShareIcon size={18} />}>
+          {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
+        </Button>
+        <Button href="/" variant="secondary">
+          {t(locale, "backHome")}
+        </Button>
+        <Button onClick={onReset} variant="ghost">
+          {t(locale, "resultNewAssessment")}
+        </Button>
+      </div>
 
-      {/* Back home */}
-      <Link
-        href="/"
-        className="w-full h-[52px] bg-white text-hifazat-teal font-semibold rounded-full text-lg border border-hifazat-teal flex items-center justify-center no-print"
-      >
-        {t(locale, "backHome")}
-      </Link>
-
-      {/* Start new assessment */}
-      <button
-        onClick={onReset}
-        className="text-base font-medium text-hifazat-muted no-print"
-      >
-        {t(locale, "resultNewAssessment")}
-      </button>
 
       <div className="no-print">
         <SiteFooter />
