@@ -356,7 +356,7 @@ export default function GuidedPage() {
   return (
     <PageShell width="form">
 
-      <main className={`flex-1 px-5 ${showActionBar ? "pb-44" : "pb-10"}`}>
+      <main className={`flex-1 px-5 ${showActionBar ? "dock-clear-lg" : "pb-10"}`}>
         {/* Back */}
         <div className="mb-4">
           {currentIndex > 0 ? (
@@ -439,7 +439,7 @@ export default function GuidedPage() {
             placeholder={t(locale, "guidedTextPlaceholder")}
             dir={locale === "ur" ? "rtl" : "ltr"}
             rows={5}
-            className="w-full min-h-[140px] p-4 mt-3 text-base text-hifazat-ink bg-white border border-hifazat-border rounded-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
+            className="w-full min-h-[140px] p-4 mt-3 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
           />
         )}
 
@@ -489,7 +489,7 @@ export default function GuidedPage() {
             aria-hidden
             className="h-20 bg-gradient-to-t from-hifazat-bg to-transparent pointer-events-none"
           />
-          <div className="bg-hifazat-bg pb-6">
+          <div className="bg-hifazat-bg dock-pad">
             <div className="w-full max-w-[600px] mx-auto px-5 flex flex-col gap-3">
           {step.kind === "review" ? (
             <Button

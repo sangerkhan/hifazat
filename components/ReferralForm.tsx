@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { CheckIcon, PhoneIcon } from "@/components/ui/Icon";
 import type { ReferralCaseContext } from "@/lib/referral";
 
 type BestTime = "any" | "morning" | "afternoon" | "evening";
@@ -102,48 +105,54 @@ export default function ReferralForm({
 
   if (reference) {
     return (
-      <div className="bg-hifazat-teal-light border-2 border-hifazat-teal rounded-[24px] p-6 flex flex-col gap-4">
-        <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
-          {t(locale, "referralSuccessTitle")}
-        </h3>
-        <p className="text-base text-hifazat-ink leading-relaxed">
-          {t(locale, "referralSuccessBody")}
-        </p>
+      <Card tone="accent" elevation="float" className="p-6 flex flex-col gap-6">
+        {/* Confirmation, reference and safety note are one thought, so they sit
+            close together and the actions sit apart from them. */}
+        <div className="flex flex-col gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-hifazat-teal text-white">
+            <CheckIcon size={24} />
+          </span>
+          <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
+            {t(locale, "referralSuccessTitle")}
+          </h3>
+          <p className="text-base text-hifazat-ink leading-relaxed">
+            {t(locale, "referralSuccessBody")}
+          </p>
 
-        <div className="bg-white rounded-[16px] px-4 py-3">
-          <p className="text-sm text-hifazat-muted">{t(locale, "referralReference")}</p>
-          <p className="font-heading font-serif text-2xl text-hifazat-teal tracking-wide" dir="ltr">
-            {reference}
+          <Card tone="raised" elevation="soft" className="px-4 py-3 flex flex-col gap-0.5">
+            <p className="text-sm text-hifazat-muted">{t(locale, "referralReference")}</p>
+            <p
+              className="font-heading font-serif text-2xl text-hifazat-teal tracking-wide"
+              dir="ltr"
+            >
+              {reference}
+            </p>
+          </Card>
+
+          <p className="text-sm text-hifazat-ink leading-relaxed font-medium">
+            {t(locale, "referralSuccessSafety")}
           </p>
         </div>
 
-        <p className="text-sm text-hifazat-ink leading-relaxed font-medium">
-          {t(locale, "referralSuccessSafety")}
-        </p>
-
         <div className="flex flex-col gap-3">
-          <a
-            href="tel:15"
-            className="w-full h-[52px] bg-hifazat-red text-white font-semibold rounded-full text-lg flex items-center justify-center"
-          >
+          <Button href="tel:15" variant="danger" size="lg" icon={<PhoneIcon size={20} />}>
             {t(locale, "resultCallPolice")}
-          </a>
-          <button
-            onClick={onClose}
-            className="w-full py-3 text-hifazat-muted font-medium text-base"
-          >
+          </Button>
+          <Button onClick={onClose} variant="ghost">
             {t(locale, "goBack")}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     );
   }
 
+  // 16px text is what actually stops iOS zooming the page when a field takes
+  // focus, and min-h matches the 48px floor every button uses.
   const inputClass =
-    "w-full px-4 py-3 text-base text-hifazat-ink bg-white border border-hifazat-border rounded-[16px] focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60";
+    "w-full min-h-[48px] px-4 py-3 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] transition-colors focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60";
 
   return (
-    <div className="bg-white border border-hifazat-border rounded-[24px] p-6 flex flex-col gap-5">
+    <Card elevation="float" className="p-6 flex flex-col gap-7">
       <div className="flex flex-col gap-2">
         <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
           {t(locale, "referralHeading")}
@@ -154,7 +163,7 @@ export default function ReferralForm({
       </div>
 
       {/* Name */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         <label htmlFor="referral-name" className="text-base font-semibold text-hifazat-ink">
           {t(locale, "referralName")}
         </label>
@@ -163,6 +172,7 @@ export default function ReferralForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t(locale, "referralNamePlaceholder")}
+          enterKeyHint="next"
           dir={isUrdu ? "rtl" : "ltr"}
           autoComplete="off"
           className={inputClass}
@@ -171,7 +181,7 @@ export default function ReferralForm({
       </div>
 
       {/* Phone */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         <label htmlFor="referral-phone" className="text-base font-semibold text-hifazat-ink">
           {t(locale, "referralPhone")}
         </label>
@@ -179,6 +189,7 @@ export default function ReferralForm({
           id="referral-phone"
           type="tel"
           inputMode="tel"
+          enterKeyHint="next"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder={t(locale, "referralPhonePlaceholder")}
@@ -206,13 +217,24 @@ export default function ReferralForm({
             type="button"
             onClick={() => setSafeToCall(value)}
             aria-pressed={safeToCall === value}
-            className={`w-full text-start px-4 py-3 rounded-[16px] text-base border transition-colors ${
+            className={`tappable w-full text-start min-h-[56px] px-4 py-3 rounded-[16px] text-base border flex items-center gap-3 ${
               safeToCall === value
-                ? "bg-hifazat-teal-light border-hifazat-teal text-hifazat-ink font-medium"
-                : "bg-white border-hifazat-border text-hifazat-ink"
+                ? "bg-surface-accent border-hifazat-teal text-hifazat-ink font-medium shadow-[var(--shadow-soft)]"
+                : "bg-surface-raised border-hifazat-border/60 text-hifazat-ink shadow-[var(--shadow-soft)]"
             }`}
           >
-            {t(locale, key)}
+            {/* Neither answer advances the form, so the choice needs to stay
+                visible — this matches the guided flow's multi-select. */}
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                safeToCall === value
+                  ? "bg-hifazat-teal border-hifazat-teal text-white"
+                  : "border-hifazat-border"
+              }`}
+            >
+              {safeToCall === value && <CheckIcon size={14} />}
+            </span>
+            <span className="flex-1">{t(locale, key)}</span>
           </button>
         ))}
         <p className="text-sm text-hifazat-muted">{t(locale, "referralSafeHelp")}</p>
@@ -230,10 +252,10 @@ export default function ReferralForm({
               type="button"
               onClick={() => setBestTime(value)}
               aria-pressed={bestTime === value}
-              className={`px-4 py-2 rounded-full text-base border transition-colors ${
+              className={`tappable inline-flex items-center min-h-[44px] px-4 rounded-full text-base border ${
                 bestTime === value
-                  ? "bg-hifazat-teal-light border-hifazat-teal text-hifazat-ink font-medium"
-                  : "bg-white border-hifazat-border text-hifazat-muted"
+                  ? "bg-hifazat-teal border-hifazat-teal text-white font-medium shadow-[var(--shadow-soft)]"
+                  : "bg-surface-raised border-hifazat-border/60 text-hifazat-muted shadow-[var(--shadow-soft)]"
               }`}
             >
               {t(locale, TIME_KEYS[value])}
@@ -243,7 +265,7 @@ export default function ReferralForm({
       </fieldset>
 
       {/* City */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         <label htmlFor="referral-city" className="text-base font-semibold text-hifazat-ink">
           {t(locale, "referralCity")}
         </label>
@@ -252,6 +274,7 @@ export default function ReferralForm({
           value={city}
           onChange={(e) => setCity(e.target.value)}
           placeholder={t(locale, "referralCityPlaceholder")}
+          enterKeyHint="done"
           dir={isUrdu ? "rtl" : "ltr"}
           autoComplete="off"
           className={inputClass}
@@ -259,12 +282,20 @@ export default function ReferralForm({
       </div>
 
       {/* Consent */}
-      <label className="flex items-start gap-3 cursor-pointer">
+      {/* The checkbox itself is 24px; the whole card is the target, which is
+          what makes consent tappable one-handed rather than a pixel hunt. */}
+      <label
+        className={`tappable flex items-start gap-3 cursor-pointer rounded-[16px] border p-4 ${
+          consent
+            ? "bg-surface-accent border-hifazat-teal"
+            : "bg-surface-sunken border-transparent"
+        }`}
+      >
         <input
           type="checkbox"
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
-          className="mt-1 h-5 w-5 shrink-0 accent-[var(--color-hifazat-teal)]"
+          className="mt-0.5 h-6 w-6 shrink-0 accent-[var(--color-hifazat-teal)]"
         />
         <span className="text-base text-hifazat-ink leading-relaxed">
           {t(locale, "referralConsent")}
@@ -278,31 +309,25 @@ export default function ReferralForm({
       {error && <p className="text-base text-hifazat-red">{error}</p>}
 
       <div className="flex flex-col gap-3">
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {submitting ? (
-            <>
+          size="lg"
+          icon={
+            submitting ? (
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {t(locale, "referralSubmitting")}
-            </>
-          ) : (
-            t(locale, "referralSubmit")
-          )}
-        </button>
-        <button
-          onClick={onClose}
-          disabled={submitting}
-          className="w-full py-3 text-hifazat-muted font-medium text-base"
+            ) : undefined
+          }
         >
+          {submitting ? t(locale, "referralSubmitting") : t(locale, "referralSubmit")}
+        </Button>
+        <Button onClick={onClose} disabled={submitting} variant="ghost">
           {t(locale, "referralCancel")}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

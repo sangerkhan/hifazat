@@ -128,6 +128,10 @@ lawyers, hosting, co-branding).
 - [ ] Aggregate trend dashboard for partner organisations
 - [x] Desktop and tablet layouts — the global 600px cap is gone; width is now
       chosen per surface, and the directory grids on wide screens
+- [x] Mobile feel — safe-area handling so docked bars clear the home indicator,
+      `theme-color` so the browser chrome matches the page, `dvh` instead of
+      `vh`, snap-scrolling filter rows, and a 44px floor verified in a real
+      browser at 393px and 360px
 - [ ] Native iOS and Android
 - [ ] Legal admin portal, once the network reaches 100 lawyers
 - [ ] Sandbox / game-style environments for school and college workshops

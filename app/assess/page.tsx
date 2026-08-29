@@ -54,7 +54,7 @@ export default function AssessPage() {
 
   return (
     <PageShell width="form">
-      <main className="flex-1 px-5 pb-32 flex flex-col gap-4">
+      <main className="flex-1 px-5 dock-clear flex flex-col gap-4">
         <BackButton href="/" />
 
         <div className="flex flex-col gap-2">
@@ -89,7 +89,7 @@ export default function AssessPage() {
           aria-hidden
           className="h-20 bg-gradient-to-t from-hifazat-bg to-transparent pointer-events-none"
         />
-        <div className="bg-hifazat-bg pb-6">
+        <div className="bg-hifazat-bg dock-pad">
           <div className="w-full max-w-[620px] mx-auto px-5">
             <Button
               onClick={handleSubmit}

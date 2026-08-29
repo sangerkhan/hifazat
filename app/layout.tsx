@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, DM_Serif_Text, Noto_Sans } from "next/font/google";
 import Providers from "@/components/Providers";
 import "./globals.css";
@@ -49,6 +49,32 @@ export const metadata: Metadata = {
       "Describe what happened and get clear guidance on your legal rights under Pakistani law. Free, private, and confidential.",
     images: ["/og-image.png"],
   },
+};
+
+/**
+ * Mobile chrome.
+ *
+ * Without this the browser picked its own defaults: the Safari toolbar stayed
+ * grey above a cream page, and on a notched phone the page stopped at the safe
+ * area so the background ended in a black band. `viewport-fit: cover` lets the
+ * page run edge to edge; the safe-area padding that makes that safe lives in
+ * globals.css and on the docked action bars.
+ *
+ * `maximumScale` is deliberately 5 rather than 1. Blocking zoom is the usual
+ * way to stop iOS scaling on focus, but it also takes pinch-to-zoom away from
+ * anyone who needs it. Every input here is already 16px, which is what actually
+ * stops the zoom-on-focus.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#faf8f6",
+  // The docked submit buttons are `position: fixed`. Without this the on-screen
+  // keyboard overlays them, so on the free-text screen the button someone needs
+  // sits behind the keyboard they are typing on.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

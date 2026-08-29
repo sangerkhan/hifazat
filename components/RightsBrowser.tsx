@@ -95,7 +95,7 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
           <p className="text-sm font-semibold text-hifazat-ink mb-2">
             {t(locale, "rightsProvincePrompt")}
           </p>
-          <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
+          <div className="hscroll flex gap-2 overflow-x-auto pb-3 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
             <button onClick={() => choose("")} className={chip(province === "")}>
               {t(locale, "rightsNoProvince")}
             </button>

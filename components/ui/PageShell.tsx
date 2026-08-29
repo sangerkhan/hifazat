@@ -31,7 +31,7 @@ export default function PageShell({
   className?: string;
 }) {
   return (
-    <div className={`flex flex-col min-h-screen w-full ${WIDTHS[width]} mx-auto ${className}`}>
+    <div className={`flex flex-col min-h-[100dvh] w-full ${WIDTHS[width]} mx-auto ${className}`}>
       <header className="flex items-center justify-between gap-4 px-5 pt-6 pb-4">
         <Link
           href="/"

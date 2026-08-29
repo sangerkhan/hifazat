@@ -46,6 +46,13 @@
   --shadow-danger: 0 2px 6px rgba(204, 80, 76, 0.20), 0 10px 24px rgba(204, 80, 76, 0.16);
 }
 
+html {
+  /* Safari bumps the font size of long blocks when the phone is rotated, which
+     reflows a page someone is mid-way through reading. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -53,6 +60,11 @@ body {
      cream page, which is the clearest tell that something is a web view. */
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+  /* The viewport is `cover`, so in landscape on a notched phone the page runs
+     under the sensor housing. Content is inset back out of it; the background
+     still reaches the edge. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* ---------------------------------------------------------------------------
@@ -73,6 +85,18 @@ body {
 
 .tappable:active {
   transform: scale(0.975);
+}
+
+/* A long press on a control should feel like holding a button, not like
+   starting to select the text inside one. Touch only: on a mouse there is no
+   long-press gesture to disambiguate, and selection is how someone copies a
+   helpline number out of a result. */
+@media (pointer: coarse) {
+  .tappable {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 }
 
 /* A control that lifts on hover reads as pickup-able on pointer devices,
@@ -101,6 +125,42 @@ button:focus-visible {
   .liftable:hover {
     transform: none;
   }
+}
+
+/* A bar docked to the bottom of the viewport.
+   `bottom: 0` on an iPhone puts the button under the home indicator, where the
+   swipe-up gesture eats the tap. The padding is the larger of the comfortable
+   spacing and whatever the device reserves. */
+.dock-pad {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+/* Clearance under content that scrolls behind a docked bar. The bar's own
+   height is fixed, but the home-indicator inset is not, so the last option in a
+   list would otherwise end up under it on exactly the devices that have one. */
+.dock-clear {
+  padding-bottom: calc(8rem + env(safe-area-inset-bottom));
+}
+
+.dock-clear-lg {
+  padding-bottom: calc(11rem + env(safe-area-inset-bottom));
+}
+
+/* Horizontal filter rows. Snapping makes a flick land on a chip instead of
+   halfway through one, and the scrollbar is chrome nobody needs on a phone. */
+.hscroll {
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+}
+
+.hscroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hscroll > * {
+  scroll-snap-align: start;
 }
 
 /* RTL support */

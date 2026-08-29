@@ -127,14 +127,15 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t(locale, "resourcesSearchPlaceholder")}
           dir={isUrdu ? "rtl" : "ltr"}
-          className="w-full px-4 py-3 mb-5 text-base text-hifazat-ink bg-white border border-hifazat-border rounded-[16px] focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
+          enterKeyHint="search"
+          className="w-full min-h-[48px] px-4 py-3 mb-5 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] transition-colors focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
         />
 
         {/* Province filter */}
         <p className="text-sm font-semibold text-hifazat-ink mb-2">
           {t(locale, "resourcesFilterProvince")}
         </p>
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
+        <div className="hscroll flex gap-2 overflow-x-auto pb-3 mb-4 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
           <button onClick={() => chooseProvince("all")} className={chipClass(province === "all")}>
             {t(locale, "resourcesFilterAll")}
           </button>
@@ -153,7 +154,7 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
         <p className="text-sm font-semibold text-hifazat-ink mb-2">
           {t(locale, "resourcesFilterType")}
         </p>
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-5 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
+        <div className="hscroll flex gap-2 overflow-x-auto pb-3 mb-5 -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap lg:overflow-visible">
           <button onClick={() => setType("all")} className={chipClass(type === "all")}>
             {t(locale, "resourcesFilterAllTypes")}
           </button>
