@@ -25,11 +25,82 @@
   --color-hifazat-card: #ffffff;
   --color-hifazat-footer: #f7f0e9;
   --color-hifazat-dark-teal: #00493e;
+
+  /* Surfaces -------------------------------------------------------------
+     The page background and cards were both near-white, so panels blended
+     into the page and everything read as one flat sheet. These give four
+     distinguishable levels: sunken for grouping, base for the page, raised
+     for cards that sit above it, and overlay for things that float. */
+  --color-surface-sunken: #f1ece7;
+  --color-surface: #faf8f6;
+  --color-surface-raised: #ffffff;
+  --color-surface-accent: #eef7f5;
+
+  /* Shadows --------------------------------------------------------------
+     Warm-tinted rather than neutral grey, so they sit in the same family as
+     the cream background instead of looking like a hole punched in it. */
+  --shadow-soft: 0 1px 2px rgba(60, 42, 30, 0.04), 0 2px 8px rgba(60, 42, 30, 0.04);
+  --shadow-card: 0 1px 2px rgba(60, 42, 30, 0.05), 0 4px 16px rgba(60, 42, 30, 0.06);
+  --shadow-float: 0 2px 4px rgba(60, 42, 30, 0.06), 0 10px 28px rgba(60, 42, 30, 0.10);
+  --shadow-primary: 0 2px 6px rgba(0, 125, 110, 0.20), 0 10px 24px rgba(0, 125, 110, 0.18);
+  --shadow-danger: 0 2px 6px rgba(204, 80, 76, 0.20), 0 10px 24px rgba(204, 80, 76, 0.16);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Stops the rubber-band overscroll on iOS revealing a white band behind a
+     cream page, which is the clearest tell that something is a web view. */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   Interaction
+   ---------------------------------------------------------------------------
+   Usability first: every control gets a real tap target and visible feedback.
+   The press-down is what makes a control feel like a physical thing rather
+   than a region of a page that happens to respond. */
+
+.tappable {
+  transition:
+    transform 140ms cubic-bezier(0.2, 0, 0.2, 1),
+    box-shadow 140ms cubic-bezier(0.2, 0, 0.2, 1),
+    background-color 140ms ease,
+    border-color 140ms ease;
+  touch-action: manipulation;
+}
+
+.tappable:active {
+  transform: scale(0.975);
+}
+
+/* A control that lifts on hover reads as pickup-able on pointer devices,
+   without changing anything on touch, where hover does not exist. */
+@media (hover: hover) and (pointer: fine) {
+  .liftable:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* Focus must stay obvious for keyboard users even though the visuals are
+   soft — this is an app people use under stress. */
+.tappable:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-hifazat-teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tappable,
+  .liftable {
+    transition: none;
+  }
+  .tappable:active,
+  .liftable:hover {
+    transform: none;
+  }
 }
 
 /* RTL support */

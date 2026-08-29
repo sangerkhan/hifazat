@@ -1,69 +1,80 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { BookIcon, InfoIcon, LifebuoyIcon, PhoneIcon } from "@/components/ui/Icon";
 
 /**
- * Shared footer and the app's only persistent navigation.
+ * Footer and secondary navigation.
  *
- * Until now the directory was reachable only if the assessment happened to
- * recommend something from it — the landing page had no link to it at all.
- * Someone who just wants a phone number should not have to describe their
- * situation first.
+ * The emergency numbers used to sit here as 18px inline links, which is the
+ * least pressable thing on the page and also the most important. They are
+ * buttons now. So is everything else: a text link inside a paragraph is a
+ * target you have to aim at.
  */
-export default function SiteFooter({ showNav = true }: { showNav?: boolean }) {
+export default function SiteFooter({
+  showNav = true,
+  /** Off where the page already carries an emergency panel, so the numbers are
+      not repeated twice on one screen. */
+  showEmergency = true,
+}: {
+  showNav?: boolean;
+  showEmergency?: boolean;
+}) {
   const { locale } = useLanguage();
 
   const links = [
-    { href: "/rights", label: t(locale, "navRights") },
-    { href: "/resources", label: t(locale, "navResources") },
-    { href: "/about", label: t(locale, "navAbout") },
+    { href: "/rights", label: t(locale, "navRights"), icon: <BookIcon size={18} /> },
+    { href: "/resources", label: t(locale, "navResources"), icon: <LifebuoyIcon size={18} /> },
+    { href: "/about", label: t(locale, "navAbout"), icon: <InfoIcon size={18} /> },
   ];
 
   return (
-    <footer className="bg-hifazat-footer rounded-[24px] p-6 flex flex-col items-center gap-4 text-center">
+    <Card tone="sunken" elevation="none" as="aside" className="p-5 flex flex-col items-center gap-4 text-center">
       <Image src="/logo.png" alt="Hifazat" width={120} height={32} className="h-6 w-auto" />
 
       {showNav && (
-        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <nav className="grid gap-2 w-full sm:grid-cols-3">
           {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-base font-semibold text-hifazat-teal underline underline-offset-4"
-            >
+            <Button key={link.href} href={link.href} variant="surface" icon={link.icon}>
               {link.label}
-            </Link>
+            </Button>
           ))}
         </nav>
+      )}
+
+      {showEmergency && (
+      <div className="w-full flex flex-col gap-2">
+        <p className="text-sm text-hifazat-ink font-medium">{t(locale, "footerEmergency")}</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button href="tel:15" variant="danger" icon={<PhoneIcon size={18} />}>
+            {t(locale, "callPolice")}
+          </Button>
+          <Button href="tel:1099" variant="danger" icon={<PhoneIcon size={18} />}>
+            {t(locale, "callHumanRights")}
+          </Button>
+        </div>
+      </div>
       )}
 
       <p className="text-sm text-hifazat-muted leading-relaxed">
         {t(locale, "footerDescription")}
       </p>
 
-      {/* The emergency numbers belong on every screen, not only where an
-          assessment happens to surface them. */}
-      <p className="text-sm text-hifazat-ink font-medium">
-        {t(locale, "footerEmergency")}{" "}
-        <a href="tel:15" className="font-semibold text-hifazat-red underline" dir="ltr">15</a>
-        {" · "}
-        <a href="tel:1099" className="font-semibold text-hifazat-red underline" dir="ltr">1099</a>
-      </p>
-
-      <p className="text-sm text-hifazat-muted">
+      <a
+        href="https://www.sangerkhan.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="tappable inline-flex items-center min-h-[44px] px-3 text-sm text-hifazat-muted"
+      >
         {t(locale, "footerCredit")}{" "}
-        <a
-          href="https://www.sangerkhan.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-semibold text-hifazat-ink underline"
-        >
+        <span className="font-semibold text-hifazat-ink underline ms-1">
           {t(locale, "footerAuthor")}
-        </a>
-      </p>
-    </footer>
+        </span>
+      </a>
+    </Card>
   );
 }

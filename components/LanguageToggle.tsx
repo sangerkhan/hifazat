@@ -8,7 +8,7 @@ export default function LanguageToggle() {
   return (
     <button
       onClick={() => setLocale(locale === "en" ? "ur" : "en")}
-      className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-hifazat-border bg-white text-base font-semibold"
+      className="tappable inline-flex items-center gap-2.5 min-h-[44px] px-4 rounded-full border border-hifazat-border/60 bg-surface-raised shadow-[var(--shadow-soft)] text-base font-semibold"
       aria-label={locale === "en" ? "Switch to Urdu" : "Switch to English"}
     >
       <span className={locale === "en" ? "text-hifazat-teal" : "text-hifazat-muted"}>
