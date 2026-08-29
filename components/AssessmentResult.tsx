@@ -14,6 +14,7 @@ import {
   GlobeIcon,
   PhoneIcon,
   PrinterIcon,
+  ScalesIcon,
   ShareIcon,
 } from "@/components/ui/Icon";
 import { useLanguage } from "@/lib/language-context";
@@ -76,6 +77,14 @@ const SEVERITY_COLORS = {
   critical: "bg-destructive text-destructive-foreground",
 };
 
+/** Urgency is the one thing that differs between steps, so it is the one
+    thing that gets colour. */
+const PRIORITY_COLORS: Record<string, string> = {
+  immediate: "bg-destructive-subtle text-destructive-strong",
+  short_term: "bg-warning-subtle text-warning-strong",
+  longer_term: "bg-info-subtle text-info-strong",
+};
+
 const PRIORITY_KEYS = {
   immediate: "resultPriorityImmediate",
   short_term: "resultPriorityShort",
@@ -123,7 +132,11 @@ export default function AssessmentResult({
     };
   }, []);
 
-  const canRefer = Boolean(referralNarrative) && referralAvailable;
+  // Availability is the only gate. It used to also require a narrative, which
+  // only the guided flow supplied — so the free-text route never offered legal
+  // aid at all, and the form now asks for a description itself when it was not
+  // given one.
+  const canRefer = referralAvailable;
   const severityLabel = t(
     locale,
     SEVERITY_KEYS[data.severity] || SEVERITY_KEYS.concerning
@@ -167,8 +180,13 @@ export default function AssessmentResult({
       ? data.classifications[0].category_name
       : "";
 
+  // One column at every width. The two-column split put the law beside the
+  // steps, which reads as two things to do at once, and the sticky left column
+  // meant the page moved under you while you were reading it. A result is a
+  // single argument — this happened, here is what to do, here is why — so it
+  // gets a single reading order and room to breathe.
   return (
-    <div className="flex flex-col gap-6 px-5 py-6 w-full max-w-[620px] lg:max-w-[1120px] mx-auto">
+    <div className="flex flex-col gap-10 px-5 py-6 w-full max-w-[680px] mx-auto">
       {/* Print header — replaces the on-screen chrome on paper */}
       <div className="print-only mb-4">
         <h1 className="font-heading font-serif text-2xl text-hifazat-ink">
@@ -280,16 +298,123 @@ export default function AssessmentResult({
         </div>
       </div>
 
-      {/* Two columns on desktop: understanding on the left, acting on the
-          right. On a phone this is one column in the same order, so the
-          explanation still comes before the steps. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10 lg:items-start">
-        {/* The explanation is usually shorter than the steps, so on desktop it
-            stays with you rather than scrolling away and leaving a void. */}
-        <div className="flex flex-col gap-8 lg:sticky lg:top-6">
+      {/* The one thing to do next.
+          This was previously the last control on the page, below the law, the
+          steps, the directory and three housekeeping buttons — so the single
+          most important action was the least likely to be seen. It belongs
+          directly under the finding it follows from. */}
+      <div className="flex flex-col gap-2.5 no-print">
+        {data.primary_action ? (
+          <Button
+            href={
+              data.primary_action.type === "call"
+                ? `tel:${data.primary_action.value}`
+                : data.primary_action.value
+            }
+            size="lg"
+            icon={
+              data.primary_action.type === "call" ? (
+                <PhoneIcon size={20} />
+              ) : (
+                <GlobeIcon size={20} />
+              )
+            }
+          >
+            {data.primary_action.label}
+          </Button>
+        ) : (
+          <Button href="https://complaint.hrs.gov.pk/" size="lg" icon={<GlobeIcon size={20} />}>
+            {t(locale, "resultReportComplaint")}
+          </Button>
+        )}
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {data.primary_action?.description || t(locale, "resultReportHelper")}
+        </p>
+      </div>
+
+      {/* What you can do */}
+      <section className="flex flex-col gap-4">
+        <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
+          {t(locale, "resultActionsHeading")}
+        </h2>
+        <div className="flex flex-col gap-3">
+        {data.actions.map((a, i) => (
+          // Three solid teal blocks in a column was the same colour shouting
+          // three times; the steps are a numbered list, not three competing
+          // offers. The card is a surface now and only the priority carries
+          // colour, which is the part that actually differs between them.
+          <Card
+            key={i}
+            elevation="soft"
+            className="p-5 flex flex-col gap-3 print-block"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-heading font-serif text-lg leading-none">
+                {i + 1}
+              </span>
+              <span
+                className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${
+                  PRIORITY_COLORS[a.priority] ?? PRIORITY_COLORS.immediate
+                }`}
+              >
+                {t(locale, PRIORITY_KEYS[a.priority] || "resultPriorityImmediate")}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-semibold text-hifazat-ink leading-snug">
+                {a.step}
+              </h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                {a.details.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
+                  part.startsWith("**") && part.endsWith("**") ? (
+                    <strong key={j} className="font-semibold text-hifazat-ink">
+                      {part.slice(2, -2)}
+                    </strong>
+                  ) : (
+                    <span key={j}>{part}</span>
+                  ),
+                )}
+              </p>
+            </div>
+          </Card>
+        ))}
+        </div>
+      </section>
+
+      {/* Lawyer referral — offered after the guidance, never before it, so
+          nobody has to hand over a phone number to find out their rights. */}
+      {/* Referral is an action, not a record — nothing to print. */}
+      {canRefer &&
+        (showReferral ? (
+          <ReferralForm
+            context={referralContext}
+            narrative={referralNarrative}
+            assessmentCategory={primaryCategory}
+            assessmentSeverity={data.severity}
+            onClose={() => setShowReferral(false)}
+          />
+        ) : (
+          <Card tone="accent" elevation="card" className="p-6 flex flex-col gap-4 no-print">
+            <div className="flex flex-col gap-2">
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-surface-raised text-primary-strong">
+                <ScalesIcon size={22} />
+              </span>
+              <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
+                {t(locale, "referralCtaTitle")}
+              </h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                {t(locale, "referralCtaBody")}
+              </p>
+            </div>
+            <Button onClick={() => setShowReferral(true)} size="lg">
+              {t(locale, "referralCtaButton")}
+            </Button>
+          </Card>
+        ))}
 
       {/* Legal breakdown */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-4">
         <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
           {t(locale, "resultClassificationsHeading")}
         </h2>
@@ -316,55 +441,9 @@ export default function AssessmentResult({
         ))}
         </div>
       </section>
-        </div>
-
-        {/* Acting */}
-        <div className="flex flex-col gap-8 mt-8 lg:mt-0">
-
-      {/* What you can do */}
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
-          {t(locale, "resultActionsHeading")}
-        </h2>
-        <div className="flex flex-col gap-3">
-        {data.actions.map((a, i) => (
-          <div
-            key={i}
-            className="bg-primary rounded-[24px] pb-6 pt-4 px-6 flex flex-col gap-2 print-block"
-          >
-            {/* Priority pill at top */}
-            <span className="inline-flex self-start px-4 py-1 rounded-full bg-white text-primary-strong text-sm font-semibold">
-              {t(
-                locale,
-                PRIORITY_KEYS[a.priority] || "resultPriorityImmediate"
-              )}
-            </span>
-            <div className="flex items-start gap-4">
-              <span className="font-heading font-serif text-[32px] text-white/60 shrink-0 leading-[1.3] w-[18px] text-center">
-                {i + 1}
-              </span>
-              <div className="flex-1 flex flex-col gap-2">
-                <h3 className="text-xl font-semibold text-white">
-                  {a.step}
-                </h3>
-                <p className="text-base text-white/80 leading-relaxed">
-                  {a.details.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
-                    part.startsWith("**") && part.endsWith("**") ? (
-                      <strong key={j} className="font-bold">{part.slice(2, -2)}</strong>
-                    ) : (
-                      <span key={j}>{part}</span>
-                    )
-                  )}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-        </div>
-      </section>
 
       {/* Resources for you */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-4">
         <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
           {t(locale, "resultResourcesHeading")}
         </h2>
@@ -376,7 +455,14 @@ export default function AssessmentResult({
 
             <div className="flex flex-col sm:flex-row gap-2">
               {r.phone && (
-                <Button href={`tel:${r.phone}`} icon={<PhoneIcon size={18} />}>
+                // Only the first of these is filled. Four solid buttons in a
+                // column read as four equally urgent calls to make, when the
+                // list is ordered — the model puts the most relevant first.
+                <Button
+                  href={`tel:${r.phone}`}
+                  variant={i === 0 ? "primary" : "outline"}
+                  icon={<PhoneIcon size={18} />}
+                >
                   <span dir="ltr">{r.phone}</span>
                 </Button>
               )}
@@ -412,77 +498,18 @@ export default function AssessmentResult({
         </Card>
       )}
 
-        </div>
-      </div>
-
-      {/* Lawyer referral — offered after the guidance, never before it, so
-          nobody has to hand over a phone number to find out their rights. */}
-      {/* Referral is an action, not a record — nothing to print. */}
-      {canRefer &&
-        (showReferral ? (
-          <ReferralForm
-            context={referralContext}
-            narrative={referralNarrative!}
-            assessmentCategory={primaryCategory}
-            assessmentSeverity={data.severity}
-            onClose={() => setShowReferral(false)}
-          />
-        ) : (
-          <div className="bg-hifazat-footer rounded-[24px] p-6 flex flex-col gap-3 no-print">
-            <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
-              {t(locale, "referralCtaTitle")}
-            </h3>
-            <p className="text-base text-muted-foreground leading-relaxed">
-              {t(locale, "referralCtaBody")}
-            </p>
-            <button
-              onClick={() => setShowReferral(true)}
-              className="w-full h-[52px] bg-primary-strong text-white font-semibold rounded-full text-lg"
-            >
-              {t(locale, "referralCtaButton")}
-            </button>
-          </div>
-        ))}
-
-      {/* Dynamic CTA */}
-      <div className="flex flex-col gap-2 items-center">
-        {data.primary_action ? (
-          <Button
-            href={
-              data.primary_action.type === "call"
-                ? `tel:${data.primary_action.value}`
-                : data.primary_action.value
-            }
-            size="lg"
-            icon={
-              data.primary_action.type === "call" ? (
-                <PhoneIcon size={20} />
-              ) : (
-                <GlobeIcon size={20} />
-              )
-            }
-          >
-            {data.primary_action.label}
-          </Button>
-        ) : (
-          <Button href="https://complaint.hrs.gov.pk/" size="lg" icon={<GlobeIcon size={20} />}>
-            {t(locale, "resultReportComplaint")}
-          </Button>
-        )}
-        <p className="text-sm text-muted-foreground text-center leading-relaxed">
-          {data.primary_action?.description || t(locale, "resultReportHelper")}
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 no-print">
-        <Button onClick={handleShare} variant="surface" icon={<ShareIcon size={18} />}>
+      {/* Housekeeping. None of this is what the page is for, so all three are
+          the same quiet weight and none of them competes with the actions
+          above. */}
+      <div className="flex flex-col sm:flex-row gap-2 no-print">
+        <Button onClick={handleShare} variant="quiet" size="sm" icon={<ShareIcon size={18} />}>
           {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
         </Button>
-        <Button href="/" variant="outline">
-          {t(locale, "backHome")}
-        </Button>
-        <Button onClick={onReset} variant="quiet">
+        <Button onClick={onReset} variant="quiet" size="sm">
           {t(locale, "resultNewAssessment")}
+        </Button>
+        <Button href="/" variant="quiet" size="sm">
+          {t(locale, "backHome")}
         </Button>
       </div>
 

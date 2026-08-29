@@ -49,7 +49,11 @@ export default function AssessPage() {
   };
 
   if (result) {
-    return <AssessmentResult data={result} onReset={handleReset} />;
+    // The narrative is what the person already typed, so legal aid can be
+    // offered here too rather than only at the end of the guided flow.
+    return (
+      <AssessmentResult data={result} onReset={handleReset} referralNarrative={input} />
+    );
   }
 
   return (
