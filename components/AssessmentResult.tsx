@@ -9,6 +9,7 @@ import SiteFooter from "@/components/SiteFooter";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import {
+  AlertIcon,
   ArrowLeftIcon,
   GlobeIcon,
   PhoneIcon,
@@ -58,6 +59,9 @@ export interface AssessmentData {
   resources: Resource[];
   note?: string;
   primary_action?: PrimaryAction;
+  /** Set by the offline fallback: generic guidance, not an analysis of the
+      account the person gave. */
+  degraded?: boolean;
 }
 
 const SEVERITY_KEYS = {
@@ -232,6 +236,21 @@ export default function AssessmentResult({
               {t(locale, "resultCallHR")}
             </Button>
           </div>
+        </Card>
+      )}
+
+      {/* Shown when the model was unreachable and this is the keyword fallback.
+          Reading canned text believing it was written about your situation is
+          worse than knowing it is generic — it is a legal decision made on a
+          false premise. */}
+      {data.degraded && (
+        <Card tone="warning" elevation="soft" className="p-4 flex items-start gap-3">
+          <span className="text-hifazat-amber shrink-0 mt-0.5">
+            <AlertIcon size={20} />
+          </span>
+          <p className="text-sm text-hifazat-ink leading-relaxed">
+            {t(locale, "resultDegraded")}
+          </p>
         </Card>
       )}
 

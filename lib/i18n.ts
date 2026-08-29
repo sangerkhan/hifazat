@@ -86,6 +86,8 @@ export const translations = {
     resultNewAssessment: "Start a new assessment",
     resultPrintHeading: "Hifazat — your rights and next steps",
     resultPrintedOn: "Prepared on",
+    resultDegraded:
+      "Our analysis service could not be reached, so this is general guidance based on a few words in what you wrote — not an assessment of your situation. The helplines below can advise you properly. Please try again in a few minutes.",
     resultPrintDisclaimer:
       "General information about Pakistani law, not legal advice. Hifazat is not a law firm and this creates no lawyer-client relationship. Take it to a lawyer before acting on it.",
     resultPrintWarning:
@@ -281,6 +283,8 @@ export const translations = {
     resultNewAssessment: "نیا جائزہ شروع کریں",
     resultPrintHeading: "حفاظت — آپ کے حقوق اور اگلے اقدامات",
     resultPrintedOn: "تیاری کی تاریخ",
+    resultDegraded:
+      "ہماری تجزیاتی سروس تک رسائی نہیں ہو سکی، اس لیے یہ آپ کی تحریر کے چند الفاظ پر مبنی عمومی رہنمائی ہے — آپ کی صورتحال کا جائزہ نہیں۔ نیچے دی گئی ہیلپ لائنز آپ کو درست مشورہ دے سکتی ہیں۔ براہِ کرم چند منٹ بعد دوبارہ کوشش کریں۔",
     resultPrintDisclaimer:
       "یہ پاکستانی قانون کے بارے میں عمومی معلومات ہیں، قانونی مشورہ نہیں۔ حفاظت کوئی قانونی فرم نہیں اور اس سے وکیل و مؤکل کا رشتہ قائم نہیں ہوتا۔ عمل کرنے سے پہلے کسی وکیل سے رجوع کریں۔",
     resultPrintWarning:

@@ -1,4 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { allowRequest, clientBucket } from "@/lib/rate-limit";
+import {
+  MAX_OUTPUT_TOKENS,
+  THINKING_BUDGET,
+  describeEmptyResponse,
+  generationConfig,
+  isThinkingConfigRejection,
+} from "@/lib/gemini";
 import { buildSystemPrompt, type PromptContext } from "@/lib/system-prompt";
 import {
   getReferenceData,
@@ -30,6 +38,7 @@ import {
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
 
 const VALID_GENDERS: Gender[] = ["woman", "man", "transgender", "unspecified"];
 const VALID_CATEGORIES: CaseCategory[] = [
@@ -268,6 +277,11 @@ function getFallbackResponse(
     : (provincial ?? national ?? emergency);
 
   return {
+    // The person is about to read generic, keyword-matched text rather than an
+    // assessment of what they actually wrote. On a legal-rights app that
+    // difference matters enough to say out loud, so the result screen shows a
+    // notice instead of presenting this as the real thing.
+    degraded: true as const,
     is_urgent: isUrgent,
     validation,
     classifications: [
@@ -372,7 +386,8 @@ async function streamFromModel(
     );
 
     if (!response.ok || !response.body) {
-      console.warn(`${model} stream returned ${response.status}`);
+      const errorBody = response.body ? await response.text() : "(no body)";
+      console.warn(`${model} stream returned ${response.status}: ${errorBody}`);
       return null;
     }
 
@@ -381,6 +396,9 @@ async function streamFromModel(
     let buffer = "";
     let accumulated = "";
     let lastPartial: PartialAssessment = {};
+    // Kept so that a stream which yields no text can still report the
+    // finishReason and token counts that explain why.
+    let lastFrame: unknown = null;
 
     for (;;) {
       const { done, value } = await reader.read();
@@ -399,6 +417,7 @@ async function streamFromModel(
 
         try {
           const payload = JSON.parse(line.slice(6));
+          lastFrame = payload;
           const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
           if (typeof text === "string") accumulated += text;
         } catch {
@@ -416,12 +435,123 @@ async function streamFromModel(
     }
 
     const parsed = parseModelJSON(accumulated);
-    return parsed && isValidAssessment(parsed) ? parsed : null;
+    if (parsed && isValidAssessment(parsed)) return parsed;
+
+    // The single most useful line in the logs when assessments stop working:
+    // it separates "the model said nothing" from "the model said something we
+    // could not parse", and names the token budget in the first case.
+    console.warn(
+      accumulated.length === 0
+        ? `${model} stream produced no text (${describeEmptyResponse(lastFrame)})`
+        : `${model} stream produced ${accumulated.length} chars that did not validate: ` +
+          `${accumulated.slice(0, 200)}`,
+    );
+    return null;
   } catch (error) {
     console.warn(`${model} stream failed:`, error);
     return null;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET — is the model actually answering?
+// ---------------------------------------------------------------------------
+
+/**
+ * A one-request answer to "why is everyone getting the offline fallback?".
+ *
+ * The failure this route degrades through is deliberately invisible to the
+ * person using the app, which also made it invisible to whoever runs it: a
+ * missing key, an expired key and a model that stopped accepting the request
+ * all look identical from the outside. This says which.
+ *
+ * It sends a real request, because "the key is set" and "the key works" are
+ * different facts and only the second one matters. The probe asks for a single
+ * token so it costs effectively nothing, and it is rate limited because it is
+ * unauthenticated. It never returns the key, or any part of it.
+ */
+export async function GET(request: NextRequest) {
+  if (!GEMINI_API_KEY) {
+    return NextResponse.json(
+      { ok: false, reason: "no_api_key", detail: "GEMINI_API_KEY is not set." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (!(await allowRequest(clientBucket(request, "assess-health"), { max: 6, windowSeconds: 300 }))) {
+    return NextResponse.json(
+      { ok: false, reason: "rate_limited" },
+      { status: 429, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  const model = GEMINI_MODELS[0];
+  const started = Date.now();
+
+  try {
+    const abort = AbortSignal.timeout(15_000);
+    const response = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "ping" }] }],
+        generationConfig: {
+          maxOutputTokens: 8,
+          thinkingConfig: { thinkingBudget: THINKING_BUDGET },
+        },
+      }),
+      signal: abort,
+    });
+
+    const latencyMs = Date.now() - started;
+
+    if (!response.ok) {
+      const body = await response.text();
+      // Google's own message names the cause (invalid key, model not found,
+      // quota). It is about this deploy's configuration, not about any user,
+      // so it is safe to return — and it is the whole point of the endpoint.
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: response.status === 400 ? "rejected" : "upstream_error",
+          model,
+          status: response.status,
+          detail: body.slice(0, 500),
+          latencyMs,
+        },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    return NextResponse.json(
+      {
+        ok: typeof text === "string" && text.length > 0,
+        model,
+        latencyMs,
+        thinkingBudget: THINKING_BUDGET,
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        ...(typeof text === "string" && text.length > 0
+          ? {}
+          : { reason: "empty_response", detail: describeEmptyResponse(data) }),
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: "unreachable",
+        model,
+        detail: error instanceof Error ? error.message : String(error),
+        latencyMs: Date.now() - started,
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }
 
@@ -493,17 +623,13 @@ export async function POST(request: Request) {
       indicators: scopeIndicators(reference, ctx.categories),
     };
 
-    const requestPayload = () =>
+    const requestPayload = (withThinkingConfig = true) =>
       JSON.stringify({
         systemInstruction: {
           parts: [{ text: buildSystemPrompt(lang, ctx, promptData) }],
         },
         contents: [{ role: "user", parts: [{ text: trimmedInput }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 4096,
-          responseMimeType: "application/json",
-        },
+        generationConfig: generationConfig(withThinkingConfig),
       });
 
     // -----------------------------------------------------------------------
@@ -576,11 +702,11 @@ export async function POST(request: Request) {
         throw new Error("GEMINI_API_KEY not configured");
       }
 
-      const requestBody = requestPayload();
-
       let lastError: Error | null = null;
+      let useThinkingConfig = true;
 
-      for (const model of GEMINI_MODELS) {
+      for (let i = 0; i < GEMINI_MODELS.length; i++) {
+        const model = GEMINI_MODELS[i];
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 45_000);
@@ -590,7 +716,7 @@ export async function POST(request: Request) {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: requestBody,
+              body: requestPayload(useThinkingConfig),
               signal: controller.signal,
             },
           );
@@ -599,7 +725,18 @@ export async function POST(request: Request) {
 
           if (!response.ok) {
             const errorBody = await response.text();
-            console.warn(`${model} returned ${response.status}, trying next model...`);
+
+            // Retry this same model once without the thinking config rather
+            // than moving on: a model that rejects the field would otherwise
+            // send everyone to the offline fallback.
+            if (useThinkingConfig && isThinkingConfigRejection(response.status, errorBody)) {
+              console.warn(`${model} rejected thinkingConfig, retrying without it`);
+              useThinkingConfig = false;
+              i--; // same model, one more time. The flag stops this recurring.
+              continue;
+            }
+
+            console.warn(`${model} returned ${response.status}: ${errorBody}`);
             lastError = new Error(`${model} error ${response.status}: ${errorBody}`);
             continue;
           }
@@ -607,8 +744,9 @@ export async function POST(request: Request) {
           const data = await response.json();
           const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (!rawText) {
-            console.warn(`${model} returned empty response, trying next model...`);
-            lastError = new Error(`${model} returned empty response`);
+            const why = describeEmptyResponse(data);
+            console.warn(`${model} returned no text (${why}), trying next model...`);
+            lastError = new Error(`${model} returned no text: ${why}`);
             continue;
           }
 
