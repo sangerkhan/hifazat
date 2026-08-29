@@ -28,7 +28,8 @@ export const translations = {
     callPolice: "Call 15 (Police)",
     callHumanRights: "Call 1099 (Human rights)",
     ctaWriteTitle: "Write on your own",
-    ctaQuizTitle: "Take a quiz",
+    ctaQuizTitle: "Take a questionnaire",
+    ctaLegalAidTitle: "Talk to a lawyer",
     ctaChooseHeading: "How would you like to start?",
     homeExploreHeading: "Or look around first",
 
@@ -132,6 +133,18 @@ export const translations = {
     referralCtaBody:
       "We can pass your situation to a lawyer in our partner network who works on cases like yours. It is free, and they will contact you directly.",
     referralCtaButton: "Ask a lawyer to contact me",
+    referralNarrativeLabel: "What do you need help with?",
+    referralNarrativePlaceholder:
+      "A few sentences are enough. What happened, and what you want to do about it.",
+    referralNarrativeHelp:
+      "The lawyer reads this before calling, so you do not have to start from the beginning.",
+    referralNarrativeRequired: "Please describe what you need help with.",
+    legalAidTitle: "Talk to a lawyer",
+    legalAidIntro:
+      "Lawyers from our partner network take these cases on. The first conversation is free.",
+    legalAidUnavailableTitle: "Not taking requests right now",
+    legalAidUnavailableBody:
+      "We cannot pass your details to a lawyer at the moment. The helplines below give free legal advice and are open now.",
     referralHeading: "Ask a lawyer to contact you",
     referralIntro:
       "A lawyer from our partner network will look at your situation and contact you directly. There is no charge for this first contact.",
@@ -173,7 +186,6 @@ export const translations = {
 
     // Navigation
     navResources: "Resources",
-    navRights: "Know your rights",
     navAbout: "About",
     footerEmergency: "In an emergency:",
 
@@ -186,20 +198,6 @@ export const translations = {
     guidedStillWorking: "Working out your legal options and next steps...",
 
     // Rights library
-    rightsTitle: "Know your rights",
-    rightsIntro:
-      "What Pakistani law recognises as violence and harassment, in plain language — and what you can do about each of it. Choose where you live and the law shown becomes the law that actually applies there.",
-    rightsProvincePrompt: "Where do you live?",
-    rightsNoProvince: "Not sure yet",
-    rightsThingsCount: "things this covers",
-    rightsWhatCounts: "What counts",
-    rightsLawHere: "The law in",
-    rightsLawGeneral: "The law",
-    rightsNoLaw: "No specific statute is listed for this combination. The national helplines can point you to what applies.",
-    rightsPickProvinceHint:
-      "Choose your province above and this shows the statute in force where you live. Domestic violence law is provincial, so it differs between provinces.",
-    rightsWhatYouCanDo: "What you can do",
-    rightsCtaAssess: "Check my own situation",
 
     // Footer
     footerDescription:
@@ -226,7 +224,8 @@ export const translations = {
     callPolice: "15 پر کال کریں (پولیس)",
     callHumanRights: "1099 پر کال کریں (انسانی حقوق)",
     ctaWriteTitle: "اپنے الفاظ میں لکھیں",
-    ctaQuizTitle: "چند سوالوں کے جواب دیں",
+    ctaQuizTitle: "سوالنامہ مکمل کریں",
+    ctaLegalAidTitle: "وکیل سے بات کریں",
     ctaChooseHeading: "آپ کیسے شروع کرنا چاہیں گی؟",
     homeExploreHeading: "یا پہلے دیکھ لیں",
 
@@ -329,6 +328,18 @@ export const translations = {
     referralCtaBody:
       "ہم آپ کی صورتحال ہمارے پارٹنر نیٹ ورک کے ایسے وکیل تک پہنچا سکتے ہیں جو ایسے مقدمات دیکھتا ہو۔ یہ مفت ہے، اور وہ آپ سے براہِ راست رابطہ کریں گے۔",
     referralCtaButton: "وکیل سے رابطہ کروائیں",
+    referralNarrativeLabel: "آپ کو کس معاملے میں مدد چاہیے؟",
+    referralNarrativePlaceholder:
+      "چند جملے کافی ہیں۔ کیا ہوا، اور آپ اس بارے میں کیا کرنا چاہتے ہیں۔",
+    referralNarrativeHelp:
+      "وکیل رابطہ کرنے سے پہلے یہ پڑھ لے گا، تاکہ آپ کو شروع سے سب کچھ بتانا نہ پڑے۔",
+    referralNarrativeRequired: "براہِ کرم بتائیں کہ آپ کو کس چیز میں مدد چاہیے۔",
+    legalAidTitle: "وکیل سے بات کریں",
+    legalAidIntro:
+      "ہمارے شراکت دار نیٹ ورک کے وکلا یہ مقدمات لیتے ہیں۔ پہلی گفتگو مفت ہے۔",
+    legalAidUnavailableTitle: "اس وقت درخواستیں نہیں لی جا رہیں",
+    legalAidUnavailableBody:
+      "فی الحال ہم آپ کی تفصیلات کسی وکیل تک نہیں پہنچا سکتے۔ نیچے دی گئی ہیلپ لائنز مفت قانونی مشورہ دیتی ہیں اور ابھی دستیاب ہیں۔",
     referralHeading: "وکیل سے رابطہ کروائیں",
     referralIntro:
       "ہمارے پارٹنر نیٹ ورک کا ایک وکیل آپ کی صورتحال دیکھ کر آپ سے براہِ راست رابطہ کرے گا۔ اس پہلے رابطے کی کوئی فیس نہیں۔",
@@ -370,7 +381,6 @@ export const translations = {
 
     // Navigation
     navResources: "وسائل",
-    navRights: "اپنے حقوق جانیں",
     navAbout: "تعارف",
     footerEmergency: "ہنگامی صورتحال میں:",
 
@@ -383,20 +393,6 @@ export const translations = {
     guidedStillWorking: "آپ کے قانونی راستے اور اگلے اقدامات تیار کیے جا رہے ہیں...",
 
     // Rights library
-    rightsTitle: "اپنے حقوق جانیں",
-    rightsIntro:
-      "پاکستانی قانون کن باتوں کو تشدد اور ہراسانی تسلیم کرتا ہے، آسان زبان میں — اور آپ ہر ایک کے بارے میں کیا کر سکتی ہیں۔ اپنا علاقہ منتخب کریں تو دکھایا گیا قانون وہی ہوگا جو وہاں واقعی نافذ ہے۔",
-    rightsProvincePrompt: "آپ کہاں رہتی ہیں؟",
-    rightsNoProvince: "ابھی یقین نہیں",
-    rightsThingsCount: "باتیں اس میں شامل ہیں",
-    rightsWhatCounts: "کیا کیا شامل ہے",
-    rightsLawHere: "قانون:",
-    rightsLawGeneral: "قانون",
-    rightsNoLaw: "اس امتزاج کے لیے کوئی مخصوص قانون درج نہیں۔ قومی ہیلپ لائنیں آپ کو بتا سکتی ہیں کہ کیا لاگو ہوتا ہے۔",
-    rightsPickProvinceHint:
-      "اوپر اپنا صوبہ منتخب کریں تو یہ وہی قانون دکھائے گا جو آپ کے علاقے میں نافذ ہے۔ گھریلو تشدد کا قانون صوبائی ہے، اس لیے صوبوں میں مختلف ہوتا ہے۔",
-    rightsWhatYouCanDo: "آپ کیا کر سکتی ہیں",
-    rightsCtaAssess: "اپنی صورتحال دیکھیں",
 
     // Footer
     footerDescription:

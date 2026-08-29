@@ -47,15 +47,15 @@ function Card({
       href={href}
       className={`flex flex-col gap-1 rounded-[24px] border p-5 transition-colors ${
         urgent
-          ? "bg-hifazat-red-light border-hifazat-red"
-          : "bg-white border-hifazat-border hover:border-hifazat-teal"
+          ? "bg-destructive-subtle border-destructive"
+          : "bg-white border-border hover:border-primary"
       }`}
     >
-      <span className="text-sm text-hifazat-muted">{label}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
       <span className="font-heading font-serif text-[40px] leading-none text-hifazat-ink">
         {value}
       </span>
-      <span className="text-sm text-hifazat-muted leading-relaxed">{hint}</span>
+      <span className="text-sm text-muted-foreground leading-relaxed">{hint}</span>
     </Link>
   );
 }
@@ -63,7 +63,7 @@ function Card({
 export default async function AdminOverview() {
   if (!isDatabaseConfigured()) {
     return (
-      <div className="bg-hifazat-amber-light border border-hifazat-amber/40 rounded-[24px] p-6 flex flex-col gap-2">
+      <div className="bg-warning-subtle border border-warning/45 rounded-[24px] p-6 flex flex-col gap-2">
         <h2 className="font-heading font-serif text-2xl text-hifazat-ink">
           No database connected
         </h2>
@@ -73,7 +73,7 @@ export default async function AdminOverview() {
           runs on the datasets bundled in the repository, which can only be changed
           by a code change and a deploy.
         </p>
-        <p className="text-sm text-hifazat-muted">See docs/BACKEND.md for setup.</p>
+        <p className="text-sm text-muted-foreground">See docs/BACKEND.md for setup.</p>
       </div>
     );
   }
@@ -84,7 +84,7 @@ export default async function AdminOverview() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading font-serif text-[32px] text-hifazat-ink">Overview</h1>
-        <p className="text-base text-hifazat-muted mt-1">
+        <p className="text-base text-muted-foreground mt-1">
           Work from the top: an unverified helpline is invisible to users, and an
           unreviewed answer is what real people are being told right now.
         </p>

@@ -9,15 +9,25 @@ import type { ReactNode } from "react";
  * corduroy.
  */
 
-export type CardTone = "raised" | "sunken" | "accent" | "danger" | "warning" | "flat";
+export type CardTone =
+  | "raised"
+  | "sunken"
+  | "accent"
+  | "danger"
+  | "warning"
+  | "info"
+  | "success"
+  | "flat";
 export type CardElevation = "none" | "soft" | "card" | "float";
 
 const TONES: Record<CardTone, string> = {
-  raised: "bg-surface-raised border-hifazat-border/50",
-  sunken: "bg-surface-sunken border-transparent",
-  accent: "bg-surface-accent border-hifazat-teal/20",
-  danger: "bg-hifazat-red-light border-hifazat-red",
-  warning: "bg-hifazat-amber-light border-hifazat-amber/40",
+  raised: "bg-surface-raised border-border",
+  sunken: "bg-muted border-transparent",
+  accent: "bg-primary-subtle border-primary/20",
+  danger: "bg-destructive-subtle border-destructive",
+  warning: "bg-warning-subtle border-warning/45",
+  info: "bg-info-subtle border-info/30",
+  success: "bg-success-subtle border-success/30",
   flat: "bg-transparent border-transparent",
 };
 

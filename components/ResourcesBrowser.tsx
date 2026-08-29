@@ -27,14 +27,14 @@ const TYPE_LABEL_KEYS: Record<ResourceType, TranslationKey> = {
 };
 
 const TYPE_COLORS: Record<ResourceType, string> = {
-  emergency: "bg-hifazat-red-light text-hifazat-red",
-  police: "bg-hifazat-red-light text-hifazat-red",
-  government: "bg-hifazat-teal-light text-hifazat-teal",
-  ngo: "bg-hifazat-amber-light text-hifazat-amber",
+  emergency: "bg-destructive-subtle text-destructive-strong",
+  police: "bg-destructive-subtle text-destructive-strong",
+  government: "bg-primary-subtle text-primary-strong",
+  ngo: "bg-warning-subtle text-warning-strong",
   legal_aid: "bg-purple-100 text-purple-700",
-  shelter: "bg-hifazat-teal-light text-hifazat-dark-teal",
+  shelter: "bg-primary-subtle text-primary-strong",
   cyber: "bg-blue-100 text-blue-700",
-  counselling: "bg-hifazat-amber-light text-hifazat-amber",
+  counselling: "bg-warning-subtle text-warning-strong",
   child: "bg-purple-100 text-purple-700",
 };
 
@@ -105,8 +105,8 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
   const chipClass = (active: boolean) =>
     `tappable inline-flex items-center min-h-[44px] px-4 rounded-full text-base whitespace-nowrap border ${
       active
-        ? "bg-hifazat-teal border-hifazat-teal text-white font-medium shadow-[var(--shadow-soft)]"
-        : "bg-surface-raised border-hifazat-border/60 text-hifazat-muted shadow-[var(--shadow-soft)]"
+        ? "bg-primary border-primary text-white font-medium shadow-[var(--shadow-soft)]"
+        : "bg-surface-raised border-border/60 text-muted-foreground shadow-[var(--shadow-soft)]"
     }`;
 
   return (
@@ -118,7 +118,7 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
         <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-1">
           {t(locale, "resourcesHeading")}
         </h1>
-        <p className="text-sm text-hifazat-muted mb-6">{t(locale, "resourcesSubtext")}</p>
+        <p className="text-sm text-muted-foreground mb-6">{t(locale, "resourcesSubtext")}</p>
 
         {/* Search */}
         <input
@@ -128,7 +128,7 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
           placeholder={t(locale, "resourcesSearchPlaceholder")}
           dir={isUrdu ? "rtl" : "ltr"}
           enterKeyHint="search"
-          className="w-full min-h-[48px] px-4 py-3 mb-5 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] transition-colors focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
+          className="w-full min-h-[48px] px-4 py-3 mb-5 text-base text-hifazat-ink bg-surface-raised border border-border/60 shadow-[var(--shadow-soft)] rounded-[16px] transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary placeholder:text-muted-foreground/60"
         />
 
         {/* Province filter */}
@@ -169,12 +169,12 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
           ))}
         </div>
 
-        <p className="text-sm text-hifazat-muted mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           {tCount(locale, "resourcesCount", verified.length)}
         </p>
 
         {verified.length === 0 && unconfirmed.length === 0 && (
-          <p className="text-base text-hifazat-muted leading-relaxed">
+          <p className="text-base text-muted-foreground leading-relaxed">
             {t(locale, "resourcesNoResults")}
           </p>
         )}
@@ -194,7 +194,7 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
             <h2 className="font-heading font-serif text-2xl text-hifazat-ink mb-2">
               {t(locale, "resourcesUnverifiedHeading")}
             </h2>
-            <p className="text-sm text-hifazat-muted leading-relaxed mb-4">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               {t(locale, "resourcesUnverifiedNote")}
             </p>
             <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start">
@@ -255,7 +255,7 @@ function ResourceCard({
         </span>
       </div>
 
-      <p className="text-sm text-hifazat-muted">
+      <p className="text-sm text-muted-foreground">
         {hours} · {scopeLabel}
       </p>
 
@@ -304,7 +304,7 @@ function ResourceCard({
         </div>
       </div>
 
-      <p className="text-sm text-hifazat-muted leading-relaxed">{description}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
     </Card>
   );
 }

@@ -82,7 +82,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
   };
 
   const inputClass =
-    "w-full px-3 py-2 text-sm bg-white border border-hifazat-border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30";
+    "w-full px-3 py-2 text-sm bg-white border border-border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-ring/30";
 
   return (
     <div className="flex flex-col gap-6">
@@ -90,7 +90,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
         <h1 className="font-heading font-serif text-[32px] text-hifazat-ink">
           Review answers
         </h1>
-        <p className="text-base text-hifazat-muted mt-1 leading-relaxed">
+        <p className="text-base text-muted-foreground mt-1 leading-relaxed">
           These are the answers real people received, ordered by how many. Correcting
           one here corrects it for everyone who lands in the same situation from now
           on — which makes the top of this list the most valuable hour of legal review
@@ -98,7 +98,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
         </p>
       </div>
 
-      <div className="bg-hifazat-teal-light border border-hifazat-teal/30 rounded-[16px] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="bg-primary-subtle border border-primary/25 rounded-[16px] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <label htmlFor="reviewer" className="text-base font-semibold text-hifazat-ink shrink-0">
           Your name
         </label>
@@ -111,11 +111,11 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
         />
       </div>
 
-      {error && <p className="text-base text-hifazat-red">{error}</p>}
+      {error && <p className="text-base text-destructive-strong">{error}</p>}
 
       {entries.length === 0 && (
-        <div className="bg-white border border-hifazat-border rounded-[24px] p-6">
-          <p className="text-base text-hifazat-muted leading-relaxed">
+        <div className="bg-white border border-border rounded-[24px] p-6">
+          <p className="text-base text-muted-foreground leading-relaxed">
             Nothing cached yet. Entries appear here once people complete the guided
             questionnaire without adding free text of their own — anything written in
             someone&apos;s own words is never cached or shown to anyone else.
@@ -133,7 +133,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
           return (
             <div
               key={entry.cache_key}
-              className="bg-white border border-hifazat-border rounded-[20px] p-5 flex flex-col gap-3"
+              className="bg-white border border-border rounded-[20px] p-5 flex flex-col gap-3"
             >
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-[16rem]">
@@ -142,47 +142,47 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
                       Served {entry.hit_count} {entry.hit_count === 1 ? "time" : "times"}
                     </span>
                     {entry.response?.is_urgent && (
-                      <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-red text-white">
+                      <span className="text-sm px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground">
                         urgent
                       </span>
                     )}
-                    <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-bg text-hifazat-muted">
+                    <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-bg text-muted-foreground">
                       {entry.response?.severity ?? "—"}
                     </span>
-                    <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-bg text-hifazat-muted">
+                    <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-bg text-muted-foreground">
                       {entry.locale}
                     </span>
                     <span
                       className={`text-sm px-2 py-0.5 rounded-full ${
                         entry.review_status === "unreviewed"
-                          ? "bg-hifazat-amber-light text-hifazat-amber"
+                          ? "bg-warning-subtle text-warning-strong"
                           : entry.review_status === "rejected"
-                            ? "bg-hifazat-red-light text-hifazat-red"
-                            : "bg-hifazat-teal-light text-hifazat-teal"
+                            ? "bg-destructive-subtle text-destructive-strong"
+                            : "bg-primary-subtle text-primary-strong"
                       }`}
                     >
                       {entry.review_status}
                     </span>
                   </div>
-                  <p className="text-sm text-hifazat-muted leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {rows.map((r) => r.answer).join(" · ") || "no recorded answers"}
                   </p>
                 </div>
 
                 <button
                   onClick={() => setOpen(isOpen ? null : entry.cache_key)}
-                  className="text-sm font-semibold text-hifazat-teal shrink-0"
+                  className="text-sm font-semibold text-primary-strong shrink-0"
                 >
                   {isOpen ? "Hide" : "Read the answer"}
                 </button>
               </div>
 
               {isOpen && (
-                <div className="flex flex-col gap-4 border-t border-hifazat-border pt-4">
+                <div className="flex flex-col gap-4 border-t border-border pt-4">
                   <div className="grid gap-2 sm:grid-cols-2">
                     {rows.map((r) => (
                       <div key={r.stepId} className="text-sm">
-                        <span className="text-hifazat-muted">{r.question} </span>
+                        <span className="text-muted-foreground">{r.question} </span>
                         <span className="text-hifazat-ink font-medium">{r.answer}</span>
                       </div>
                     ))}
@@ -220,8 +220,8 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
                           }
                           className={`px-3 py-1 rounded-full text-sm border ${
                             current === s
-                              ? "bg-hifazat-teal border-hifazat-teal text-white"
-                              : "bg-white border-hifazat-border text-hifazat-muted"
+                              ? "bg-primary border-primary text-white"
+                              : "bg-white border-border text-muted-foreground"
                           }`}
                         >
                           {s}
@@ -237,7 +237,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
                       </span>
                       <ul className="list-disc ps-5 mt-1">
                         {entry.response.classifications.map((c, i) => (
-                          <li key={i} className="text-sm text-hifazat-muted">
+                          <li key={i} className="text-sm text-muted-foreground">
                             {c.indicator_name} — {c.legal_reference}
                           </li>
                         ))}
@@ -252,7 +252,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
                       </span>
                       <ol className="list-decimal ps-5 mt-1 flex flex-col gap-1">
                         {entry.response.actions.map((a, i) => (
-                          <li key={i} className="text-sm text-hifazat-muted">
+                          <li key={i} className="text-sm text-muted-foreground">
                             <span className="text-hifazat-ink">{a.step}</span> — {a.details}
                           </li>
                         ))}
@@ -261,7 +261,7 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
                   ) : null}
 
                   {entry.response?.resources?.length ? (
-                    <p className="text-sm text-hifazat-muted">
+                    <p className="text-sm text-muted-foreground">
                       <span className="font-semibold text-hifazat-ink">Referred to: </span>
                       {entry.response.resources
                         .map((r) => `${r.name}${r.phone ? ` (${r.phone})` : ""}`)
@@ -273,26 +273,26 @@ export default function CacheReview({ entries }: { entries: CachedEntry[] }) {
                     <button
                       onClick={() => act(entry.cache_key, "approved")}
                       disabled={isBusy}
-                      className="px-4 py-2 rounded-full text-sm font-semibold bg-hifazat-teal text-white disabled:opacity-50"
+                      className="px-4 py-2 rounded-full text-sm font-semibold bg-primary text-white disabled:opacity-50"
                     >
                       Approve as is
                     </button>
                     <button
                       onClick={() => act(entry.cache_key, "edited", { edits: edit })}
                       disabled={isBusy || Object.keys(edit).length === 0}
-                      className="px-4 py-2 rounded-full text-sm font-semibold bg-hifazat-dark-teal text-white disabled:opacity-50"
+                      className="px-4 py-2 rounded-full text-sm font-semibold bg-primary-strong text-white disabled:opacity-50"
                     >
                       Save changes
                     </button>
                     <button
                       onClick={() => act(entry.cache_key, "rejected")}
                       disabled={isBusy}
-                      className="px-4 py-2 rounded-full text-sm font-semibold border border-hifazat-red text-hifazat-red disabled:opacity-50"
+                      className="px-4 py-2 rounded-full text-sm font-semibold border border-destructive text-destructive-strong disabled:opacity-50"
                     >
                       Reject — stop serving this
                     </button>
                   </div>
-                  <p className="text-sm text-hifazat-muted">
+                  <p className="text-sm text-muted-foreground">
                     A rejected answer is never served again; the next person in this
                     situation gets a freshly generated one.
                   </p>

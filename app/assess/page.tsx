@@ -61,7 +61,7 @@ export default function AssessPage() {
           <h1 className="font-heading text-[28px] font-serif text-hifazat-ink leading-tight">
             {t(locale, "assessHeading")}
           </h1>
-          <p className="text-base text-hifazat-muted leading-relaxed">
+          <p className="text-base text-muted-foreground leading-relaxed">
             {t(locale, "assessSubtext")}
           </p>
         </div>
@@ -71,13 +71,13 @@ export default function AssessPage() {
           onChange={(e) => setInput(e.target.value)}
           placeholder={t(locale, "assessPlaceholder")}
           dir={locale === "ur" ? "rtl" : "ltr"}
-          className="w-full min-h-[200px] p-4 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[18px] resize-none focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
+          className="w-full min-h-[200px] p-4 text-base text-hifazat-ink bg-surface-raised border border-border/60 shadow-[var(--shadow-soft)] rounded-[18px] resize-none focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary placeholder:text-muted-foreground/60"
           rows={7}
         />
 
-        {error && <p className="text-base text-hifazat-red">{error}</p>}
+        {error && <p className="text-base text-destructive-strong">{error}</p>}
 
-        <p className="text-sm text-hifazat-muted text-center">
+        <p className="text-sm text-muted-foreground text-center">
           {t(locale, "assessPrivacy")}
         </p>
       </main>

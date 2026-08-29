@@ -32,8 +32,8 @@ export default function AdminNav() {
             href={link.href}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               active
-                ? "bg-hifazat-teal text-white"
-                : "text-hifazat-muted hover:bg-black/5"
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:bg-black/5"
             }`}
           >
             {link.label}
@@ -42,7 +42,7 @@ export default function AdminNav() {
       })}
       <button
         onClick={logout}
-        className="px-3 py-1.5 rounded-full text-sm font-medium text-hifazat-muted hover:bg-black/5"
+        className="px-3 py-1.5 rounded-full text-sm font-medium text-muted-foreground hover:bg-black/5"
       >
         Sign out
       </button>

@@ -23,7 +23,7 @@ export default function BackButton({
 
   return (
     <Button
-      variant="ghost"
+      variant="quiet"
       fullWidth={false}
       icon={<ArrowLeftIcon size={20} />}
       className="!px-4 self-start"

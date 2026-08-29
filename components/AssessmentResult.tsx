@@ -71,9 +71,9 @@ const SEVERITY_KEYS = {
 } as const;
 
 const SEVERITY_COLORS = {
-  concerning: "bg-hifazat-amber text-white",
-  serious: "bg-hifazat-red text-white",
-  critical: "bg-hifazat-red text-white",
+  concerning: "bg-warning text-warning-foreground",
+  serious: "bg-destructive text-destructive-foreground",
+  critical: "bg-destructive text-destructive-foreground",
 };
 
 const PRIORITY_KEYS = {
@@ -193,7 +193,7 @@ export default function AssessmentResult({
       <div className="flex items-center gap-3 no-print">
         <Button
           onClick={onReset}
-          variant="ghost"
+          variant="quiet"
           fullWidth={false}
           icon={<ArrowLeftIcon size={20} />}
           className="!px-4"
@@ -214,10 +214,10 @@ export default function AssessmentResult({
       {/* A printed assessment is a physical object that can be found. Saying so
           is more use than any amount of on-screen privacy assurance. */}
       <details className="no-print">
-        <summary className="text-sm text-hifazat-muted cursor-pointer">
+        <summary className="text-sm text-muted-foreground cursor-pointer">
           {t(locale, "resultSaveOrPrint")}
         </summary>
-        <p className="text-sm text-hifazat-ink/80 leading-relaxed mt-2 bg-hifazat-amber-light border border-hifazat-amber/40 rounded-[12px] p-3">
+        <p className="text-sm text-hifazat-ink/80 leading-relaxed mt-2 bg-warning-subtle border border-warning/45 rounded-[12px] p-3">
           {t(locale, "resultPrintWarning")}
         </p>
       </details>
@@ -229,10 +229,10 @@ export default function AssessmentResult({
             {t(locale, "resultUrgent")}
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button href="tel:15" variant="danger" icon={<PhoneIcon size={18} />}>
+            <Button href="tel:15" variant="destructive" icon={<PhoneIcon size={18} />}>
               {t(locale, "resultCallPolice")}
             </Button>
-            <Button href="tel:1099" variant="danger" icon={<PhoneIcon size={18} />}>
+            <Button href="tel:1099" variant="destructive" icon={<PhoneIcon size={18} />}>
               {t(locale, "resultCallHR")}
             </Button>
           </div>
@@ -245,7 +245,7 @@ export default function AssessmentResult({
           false premise. */}
       {data.degraded && (
         <Card tone="warning" elevation="soft" className="p-4 flex items-start gap-3">
-          <span className="text-hifazat-amber shrink-0 mt-0.5">
+          <span className="text-warning-strong shrink-0 mt-0.5">
             <AlertIcon size={20} />
           </span>
           <p className="text-sm text-hifazat-ink leading-relaxed">
@@ -258,7 +258,7 @@ export default function AssessmentResult({
           statement, so they sit together rather than as three loose blocks. */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <p className="text-base text-hifazat-muted font-medium">
+          <p className="text-base text-muted-foreground font-medium">
             {t(locale, "resultRecognisedAs")}
           </p>
           <h1 className="font-heading font-serif text-[36px] lg:text-[44px] leading-[1.15] text-hifazat-ink">
@@ -269,7 +269,7 @@ export default function AssessmentResult({
         <p className="text-base text-hifazat-ink/80 leading-relaxed">{data.validation}</p>
 
         <div className="flex items-center gap-2.5">
-          <span className="text-sm text-hifazat-muted font-medium">
+          <span className="text-sm text-muted-foreground font-medium">
             {t(locale, "resultLegalSeverity")}
           </span>
           <span
@@ -297,15 +297,15 @@ export default function AssessmentResult({
         {data.classifications.map((c, i) => (
           <div
             key={i}
-            className="bg-white border border-hifazat-border rounded-[24px] px-4 py-6 flex flex-col gap-4 print-block"
+            className="bg-white border border-border rounded-[24px] px-4 py-6 flex flex-col gap-4 print-block"
           >
             <h3 className="text-[18px] font-semibold text-hifazat-ink">
               {c.indicator_name}
             </h3>
-            <p className="text-base text-hifazat-muted leading-relaxed">
+            <p className="text-base text-muted-foreground leading-relaxed">
               {c.explanation}
             </p>
-            <div className="w-full px-4 py-2 rounded-[8px] bg-hifazat-teal-light text-hifazat-teal text-base font-semibold text-left">
+            <div className="w-full px-4 py-2 rounded-[8px] bg-primary-subtle text-primary-strong text-base font-semibold text-left">
               <ul className="list-disc list-inside flex flex-col gap-1">
                 {c.legal_reference.split(/;\s*/).map((ref, j) => (
                   <li key={j}>{ref.trim()}</li>
@@ -330,10 +330,10 @@ export default function AssessmentResult({
         {data.actions.map((a, i) => (
           <div
             key={i}
-            className="bg-hifazat-teal rounded-[24px] pb-6 pt-4 px-6 flex flex-col gap-2 print-block"
+            className="bg-primary rounded-[24px] pb-6 pt-4 px-6 flex flex-col gap-2 print-block"
           >
             {/* Priority pill at top */}
-            <span className="inline-flex self-start px-4 py-1 rounded-full bg-white text-hifazat-teal text-sm font-semibold">
+            <span className="inline-flex self-start px-4 py-1 rounded-full bg-white text-primary-strong text-sm font-semibold">
               {t(
                 locale,
                 PRIORITY_KEYS[a.priority] || "resultPriorityImmediate"
@@ -372,7 +372,7 @@ export default function AssessmentResult({
         {data.resources.map((r, i) => (
           <Card key={i} className="px-4 py-5 flex flex-col gap-3 print-block">
             <h3 className="text-base font-semibold text-hifazat-ink">{r.name}</h3>
-            <p className="text-base text-hifazat-muted leading-relaxed">{r.why}</p>
+            <p className="text-base text-muted-foreground leading-relaxed">{r.why}</p>
 
             <div className="flex flex-col sm:flex-row gap-2">
               {r.phone && (
@@ -406,7 +406,7 @@ export default function AssessmentResult({
           <p className="text-base font-semibold text-hifazat-ink leading-relaxed">
             {data.note}
           </p>
-          <p className="text-base text-hifazat-muted leading-relaxed">
+          <p className="text-base text-muted-foreground leading-relaxed">
             {data.severity_explanation}
           </p>
         </Card>
@@ -432,12 +432,12 @@ export default function AssessmentResult({
             <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
               {t(locale, "referralCtaTitle")}
             </h3>
-            <p className="text-base text-hifazat-muted leading-relaxed">
+            <p className="text-base text-muted-foreground leading-relaxed">
               {t(locale, "referralCtaBody")}
             </p>
             <button
               onClick={() => setShowReferral(true)}
-              className="w-full h-[52px] bg-hifazat-dark-teal text-white font-semibold rounded-full text-lg"
+              className="w-full h-[52px] bg-primary-strong text-white font-semibold rounded-full text-lg"
             >
               {t(locale, "referralCtaButton")}
             </button>
@@ -469,7 +469,7 @@ export default function AssessmentResult({
             {t(locale, "resultReportComplaint")}
           </Button>
         )}
-        <p className="text-sm text-hifazat-muted text-center leading-relaxed">
+        <p className="text-sm text-muted-foreground text-center leading-relaxed">
           {data.primary_action?.description || t(locale, "resultReportHelper")}
         </p>
       </div>
@@ -478,10 +478,10 @@ export default function AssessmentResult({
         <Button onClick={handleShare} variant="surface" icon={<ShareIcon size={18} />}>
           {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
         </Button>
-        <Button href="/" variant="secondary">
+        <Button href="/" variant="outline">
           {t(locale, "backHome")}
         </Button>
-        <Button onClick={onReset} variant="ghost">
+        <Button onClick={onReset} variant="quiet">
           {t(locale, "resultNewAssessment")}
         </Button>
       </div>

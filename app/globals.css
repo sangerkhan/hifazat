@@ -36,6 +36,58 @@
   --color-surface-raised: #ffffff;
   --color-surface-accent: #eef7f5;
 
+  /* Semantic roles -------------------------------------------------------
+     Colour was being chosen per component — a red border here, an amber panel
+     there — so the same idea looked slightly different on every screen. These
+     name the *meaning* instead of the hue, in shadcn's paired shape: every
+     solid has a `-foreground` guaranteed to be legible on it, and every role
+     has a `-subtle` panel tint with a `-strong` text colour to sit on it.
+     Contrast for all 14 pairs is checked by scripts/check-contrast.ts.
+
+     `info` is the one new hue. It has to read as "not the brand colour" at a
+     glance, so it is pushed well to the blue side of the teal. */
+
+  /* Primary — the one action a screen is really asking for. */
+  --color-primary: #007d6e;
+  --color-primary-foreground: #ffffff;
+  --color-primary-subtle: #eef7f5;
+  --color-primary-strong: #00493e;
+
+  /* Destructive — irreversible, or an emergency. Never decoration. */
+  --color-destructive: #bd403c;
+  --color-destructive-foreground: #ffffff;
+  --color-destructive-subtle: #fdf1f0;
+  --color-destructive-strong: #8f2f2c;
+
+  /* Warning — proceed, but know something. Amber is the one role that cannot
+     carry white text: no shade of it clears 4.5:1 against white while still
+     reading as amber. It takes dark ink instead, which is also what lets the
+     fill stay bright enough to double as a border at 3:1 on the page. */
+  --color-warning: #b48228;
+  --color-warning-foreground: #241a04;
+  --color-warning-subtle: #f7edd9;
+  --color-warning-strong: #6f5013;
+
+  /* Success — confirmed, verified, done. */
+  --color-success: #2b7358;
+  --color-success-foreground: #ffffff;
+  --color-success-subtle: #e8f4ee;
+  --color-success-strong: #1c5540;
+
+  /* Info — context and provenance, not a call to action. */
+  --color-info: #2a5b9c;
+  --color-info-foreground: #ffffff;
+  --color-info-subtle: #eaf1fa;
+  --color-info-strong: #1c4173;
+
+  /* Neutrals. `muted` is the sunken surface; `muted-foreground` is secondary
+     text anywhere on the page. */
+  --color-muted: #f1ece7;
+  --color-muted-foreground: #5c5651;
+  --color-border: rgba(38, 38, 38, 0.15);
+  --color-input: rgba(38, 38, 38, 0.22);
+  --color-ring: #007d6e;
+
   /* Shadows --------------------------------------------------------------
      Warm-tinted rather than neutral grey, so they sit in the same family as
      the cream background instead of looking like a hole punched in it. */

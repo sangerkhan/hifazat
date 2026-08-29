@@ -1,31 +1,77 @@
 "use client";
 
 import Link from "next/link";
+import { cva, type VariantProps } from "class-variance-authority";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 /**
  * The one button.
  *
- * Nine screens were repeating the same long className strings, which is how
- * tap targets drift: some controls ended up 52px tall and some ended up being
- * 14px text pretending to be a control. Everything routes through here now, and
- * every variant is at least 48px tall — comfortably above the 44px both Apple
- * and WCAG treat as the floor, which matters more than usual for an app people
- * use one-handed while distressed.
+ * There used to be two weights that mattered — solid teal and solid white —
+ * and screens that needed four or five actions had to reach for one of them
+ * every time. Six solid cards in a column all shout at the same volume, which
+ * is the same as none of them shouting: the eye has nothing to land on.
+ *
+ * The range below is ordered by how much attention a control is asking for.
+ * The rule for using it: **one `primary` per screen.** Everything else steps
+ * down — `outline` for a real but secondary action, `subtle` for something on
+ * a card, `quiet` for housekeeping like save or share, `link` for the rare
+ * inline case. `destructive` is for emergencies and irreversible things, never
+ * for emphasis.
  *
  * Renders an <a> for tel:/mailto:/external, a Next <Link> for internal routes,
- * and a <button> otherwise — so a control never loses the right semantics just
- * because it needs to look like a button.
+ * and a <button> otherwise, so a control never loses the right semantics just
+ * because of how it needs to look.
  */
 
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "ghost"
-  | "danger"
-  | "surface";
+const button = cva(
+  [
+    "tappable inline-flex items-center justify-center rounded-full font-semibold",
+    "disabled:opacity-50 disabled:pointer-events-none",
+  ],
+  {
+    variants: {
+      variant: {
+        /** The single thing this screen is asking for. */
+        primary:
+          "liftable bg-primary text-primary-foreground border border-transparent shadow-[var(--shadow-primary)] hover:bg-primary-strong",
+        /** An emergency, or something that cannot be undone. */
+        destructive:
+          "liftable bg-destructive text-destructive-foreground border border-transparent shadow-[var(--shadow-danger)] hover:brightness-95",
+        /** A real action, but not the one. Carries weight without a fill. */
+        outline:
+          "bg-transparent text-primary-strong border border-primary/35 hover:border-primary hover:bg-primary-subtle",
+        /** Sits on a card or a tinted panel without competing with it. */
+        subtle:
+          "bg-primary-subtle text-primary-strong border border-transparent hover:bg-primary-subtle hover:border-primary/30",
+        /** Housekeeping: save, share, change language, go back. */
+        quiet:
+          "bg-muted text-hifazat-ink border border-transparent hover:bg-muted/70",
+        /** A raised neutral control, for card grids where a fill would be noise. */
+        surface:
+          "liftable bg-surface-raised text-hifazat-ink border border-border shadow-[var(--shadow-soft)] hover:border-primary/40",
+        /** Genuinely inline, inside a sentence. Still a 44px target. */
+        link: "bg-transparent text-primary-strong underline underline-offset-4 hover:text-primary",
+      },
+      size: {
+        // Never below 44px: this is the floor, not a starting point to trim
+        // from. `sm` exists for icon rows inside cards, not to shrink actions.
+        sm: "min-h-[44px] px-4 text-sm gap-2",
+        md: "min-h-[48px] px-5 text-base gap-2.5",
+        lg: "min-h-[56px] px-6 text-lg gap-3",
+      },
+      fullWidth: {
+        true: "w-full",
+        false: "",
+      },
+    },
+    defaultVariants: { variant: "primary", size: "md", fullWidth: true },
+  },
+);
 
-export type ButtonSize = "md" | "lg";
+export type ButtonVariant = NonNullable<VariantProps<typeof button>["variant"]>;
+export type ButtonSize = NonNullable<VariantProps<typeof button>["size"]>;
 
 interface CommonProps {
   children: ReactNode;
@@ -47,33 +93,14 @@ type Props = CommonProps &
     | { href?: never; external?: never; onClick?: () => void; type?: "button" | "submit" }
   );
 
-const VARIANTS: Record<ButtonVariant, string> = {
-  primary:
-    "bg-hifazat-teal text-white border border-transparent shadow-[var(--shadow-primary)] hover:bg-hifazat-dark-teal",
-  secondary:
-    "bg-surface-raised text-hifazat-teal border border-hifazat-teal/30 shadow-[var(--shadow-soft)] hover:border-hifazat-teal",
-  surface:
-    "bg-surface-raised text-hifazat-ink border border-hifazat-border/60 shadow-[var(--shadow-soft)] hover:border-hifazat-teal/40",
-  ghost:
-    "bg-black/[0.045] text-hifazat-ink border border-transparent hover:bg-black/[0.075]",
-  danger:
-    "bg-hifazat-red text-white border border-transparent shadow-[var(--shadow-danger)] hover:brightness-95",
-};
-
-const SIZES: Record<ButtonSize, string> = {
-  // Never below 48px: this is the floor, not a starting point to trim from.
-  md: "min-h-[48px] px-5 text-base gap-2.5",
-  lg: "min-h-[56px] px-6 text-lg gap-3",
-};
-
 export default function Button({
   children,
-  variant = "primary",
-  size = "md",
+  variant,
+  size,
   icon,
   trailingIcon,
-  fullWidth = true,
-  className = "",
+  fullWidth,
+  className,
   disabled = false,
   href,
   external,
@@ -81,16 +108,7 @@ export default function Button({
   type = "button",
   ...rest
 }: Props) {
-  const classes = [
-    "tappable liftable inline-flex items-center justify-center rounded-full font-semibold",
-    SIZES[size],
-    VARIANTS[variant],
-    fullWidth ? "w-full" : "",
-    disabled ? "opacity-50 pointer-events-none" : "",
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const classes = cn(button({ variant, size, fullWidth }), className);
 
   const content = (
     <>
@@ -103,8 +121,7 @@ export default function Button({
   if (href) {
     // tel:, mailto: and off-site links are plain anchors; Link would try to
     // client-navigate them.
-    const isPlainAnchor =
-      external || /^(tel:|mailto:|https?:)/.test(href);
+    const isPlainAnchor = external || /^(tel:|mailto:|https?:)/.test(href);
 
     if (isPlainAnchor) {
       return (

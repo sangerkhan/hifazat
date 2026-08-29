@@ -20,7 +20,7 @@ function maskPhone(phone: string | null): string {
 export default async function AdminReferralsPage() {
   if (!isDatabaseConfigured()) {
     return (
-      <div className="bg-hifazat-amber-light border border-hifazat-amber/40 rounded-[24px] p-6">
+      <div className="bg-warning-subtle border border-warning/45 rounded-[24px] p-6">
         <h2 className="font-heading font-serif text-2xl text-hifazat-ink mb-2">
           No database connected
         </h2>
@@ -45,7 +45,7 @@ export default async function AdminReferralsPage() {
 
   if (error) {
     return (
-      <div className="bg-hifazat-red-light border border-hifazat-red rounded-[24px] p-6">
+      <div className="bg-destructive-subtle border border-destructive rounded-[24px] p-6">
         <h2 className="font-heading font-serif text-2xl text-hifazat-ink mb-2">
           Could not load
         </h2>

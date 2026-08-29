@@ -44,10 +44,10 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center px-5">
       <form
         onSubmit={submit}
-        className="w-full max-w-sm bg-white border border-hifazat-border rounded-[24px] p-6 flex flex-col gap-4"
+        className="w-full max-w-sm bg-white border border-border rounded-[24px] p-6 flex flex-col gap-4"
       >
         <h1 className="font-heading font-serif text-2xl text-hifazat-ink">Hifazat admin</h1>
-        <p className="text-sm text-hifazat-muted leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           This area contains personal details of people who have asked for help.
           Do not sign in on a shared or public device.
         </p>
@@ -61,15 +61,15 @@ export default function AdminLoginPage() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-4 py-3 text-base bg-white border border-hifazat-border rounded-[16px] focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal"
+          className="w-full px-4 py-3 text-base bg-white border border-border rounded-[16px] focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary"
         />
 
-        {error && <p className="text-base text-hifazat-red">{error}</p>}
+        {error && <p className="text-base text-destructive-strong">{error}</p>}
 
         <button
           type="submit"
           disabled={submitting || !password}
-          className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50"
+          className="w-full h-[52px] bg-primary text-white font-semibold rounded-full text-lg disabled:opacity-50"
         >
           {submitting ? "Signing in..." : "Sign in"}
         </button>

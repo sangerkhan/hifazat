@@ -139,3 +139,15 @@ export const AlertIcon = ({ size = 24, className }: IconProps) => (
     <path d="M12 10v4M12 17h.01" />
   </svg>
 );
+
+/** Legal help. Scales rather than a gavel: a gavel reads as a court case
+    someone has already been dragged into, which is not what this offers. */
+export const ScalesIcon = ({ size = 24, className }: IconProps) => (
+  <svg {...base(size, className)}>
+    <path d="M12 3v18" />
+    <path d="M8 21h8" />
+    <path d="M3 7h18" />
+    <path d="m6.5 7-3 6a3 3 0 0 0 6 0Z" />
+    <path d="m17.5 7-3 6a3 3 0 0 0 6 0Z" />
+  </svg>
+);

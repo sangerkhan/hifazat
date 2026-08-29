@@ -255,10 +255,10 @@ export default function GuidedPage() {
                 {t(locale, "resultUrgent")}
               </p>
               <div className="flex flex-col gap-3">
-                <Button href="tel:15" variant="danger" icon={<PhoneIcon size={18} />}>
+                <Button href="tel:15" variant="destructive" icon={<PhoneIcon size={18} />}>
                   {t(locale, "resultCallPolice")}
                 </Button>
-                <Button href="tel:1099" variant="danger" icon={<PhoneIcon size={18} />}>
+                <Button href="tel:1099" variant="destructive" icon={<PhoneIcon size={18} />}>
                   {t(locale, "resultCallHR")}
                 </Button>
               </div>
@@ -271,7 +271,7 @@ export default function GuidedPage() {
             </p>
           )}
 
-          <div className="flex items-center gap-3 text-hifazat-muted">
+          <div className="flex items-center gap-3 text-muted-foreground">
             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -310,16 +310,16 @@ export default function GuidedPage() {
               {t(locale, "dangerBody")}
             </p>
             <div className="flex flex-col gap-3">
-              <Button href="tel:15" variant="danger" size="lg" icon={<PhoneIcon size={20} />}>
+              <Button href="tel:15" variant="destructive" size="lg" icon={<PhoneIcon size={20} />}>
                 {t(locale, "resultCallPolice")}
               </Button>
-              <Button href="tel:1099" variant="danger" size="lg" icon={<PhoneIcon size={20} />}>
+              <Button href="tel:1099" variant="destructive" size="lg" icon={<PhoneIcon size={20} />}>
                 {t(locale, "resultCallHR")}
               </Button>
             </div>
           </Card>
 
-          {error && <p className="text-base text-hifazat-red">{error}</p>}
+          {error && <p className="text-base text-destructive-strong">{error}</p>}
 
           <div className="flex flex-col gap-3">
             <Button onClick={() => submit()} disabled={loading} size="lg">
@@ -331,7 +331,7 @@ export default function GuidedPage() {
                 setCurrentIndex(nextStepIndex(steps, "safety"));
               }}
               disabled={loading}
-              variant="ghost"
+              variant="quiet"
             >
               {t(locale, "dangerContinue")}
             </Button>
@@ -372,12 +372,12 @@ export default function GuidedPage() {
             <div
               key={s.id}
               className={`h-1.5 flex-1 rounded-full ${
-                i <= currentIndex ? "bg-hifazat-teal" : "bg-hifazat-border"
+                i <= currentIndex ? "bg-primary" : "bg-border"
               }`}
             />
           ))}
         </div>
-        <p className="text-sm text-hifazat-muted mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           {tStep(locale, currentIndex + 1, totalSteps)}
         </p>
 
@@ -385,7 +385,7 @@ export default function GuidedPage() {
           {localized(step.question, locale)}
         </h1>
         {step.help && (
-          <p className="text-sm text-hifazat-muted mb-5 leading-relaxed">
+          <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
             {localized(step.help, locale)}
           </p>
         )}
@@ -402,8 +402,8 @@ export default function GuidedPage() {
                   aria-pressed={step.kind === "multi" ? selected : undefined}
                   className={`tappable w-full text-start min-h-[56px] px-4 py-3.5 rounded-[16px] text-base border flex items-center gap-3 ${
                     selected
-                      ? "bg-surface-accent border-hifazat-teal text-hifazat-ink font-medium shadow-[var(--shadow-soft)]"
-                      : "bg-surface-raised border-hifazat-border/60 text-hifazat-ink shadow-[var(--shadow-soft)]"
+                      ? "bg-surface-accent border-primary text-hifazat-ink font-medium shadow-[var(--shadow-soft)]"
+                      : "bg-surface-raised border-border/60 text-hifazat-ink shadow-[var(--shadow-soft)]"
                   }`}
                 >
                   {/* Multi-select needs a visible state; single-select advances
@@ -412,8 +412,8 @@ export default function GuidedPage() {
                     <span
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border-2 ${
                         selected
-                          ? "bg-hifazat-teal border-hifazat-teal text-white"
-                          : "border-hifazat-border"
+                          ? "bg-primary border-primary text-white"
+                          : "border-border"
                       }`}
                     >
                       {selected && <CheckIcon size={14} />}
@@ -421,7 +421,7 @@ export default function GuidedPage() {
                   )}
                   <span className="flex-1">{localized(option.label, locale)}</span>
                   {step.kind !== "multi" && (
-                    <span className="text-hifazat-muted/50 shrink-0">
+                    <span className="text-muted-foreground/50 shrink-0">
                       <ArrowRightIcon size={18} />
                     </span>
                   )}
@@ -439,7 +439,7 @@ export default function GuidedPage() {
             placeholder={t(locale, "guidedTextPlaceholder")}
             dir={locale === "ur" ? "rtl" : "ltr"}
             rows={5}
-            className="w-full min-h-[140px] p-4 mt-3 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60"
+            className="w-full min-h-[140px] p-4 mt-3 text-base text-hifazat-ink bg-surface-raised border border-border/60 shadow-[var(--shadow-soft)] rounded-[16px] resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary placeholder:text-muted-foreground/60"
           />
         )}
 
@@ -447,21 +447,21 @@ export default function GuidedPage() {
         {step.kind === "review" && (
           <div className="flex flex-col gap-3 mt-3">
             {summary.length === 0 && (
-              <p className="text-base text-hifazat-muted">{t(locale, "guidedNoAnswers")}</p>
+              <p className="text-base text-muted-foreground">{t(locale, "guidedNoAnswers")}</p>
             )}
             {summary.map((row) => (
               <button
                 key={row.stepId}
                 onClick={() => handleEdit(row.stepId)}
-                className="tappable w-full text-start bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] min-h-[56px] px-4 py-3 flex items-start justify-between gap-3"
+                className="tappable w-full text-start bg-surface-raised border border-border/60 shadow-[var(--shadow-soft)] rounded-[16px] min-h-[56px] px-4 py-3 flex items-start justify-between gap-3"
               >
                 <span className="flex-1">
-                  <span className="block text-sm text-hifazat-muted">{row.question}</span>
+                  <span className="block text-sm text-muted-foreground">{row.question}</span>
                   <span className="block text-base text-hifazat-ink font-medium mt-0.5">
                     {row.answer}
                   </span>
                 </span>
-                <span className="text-sm font-semibold text-hifazat-teal shrink-0 mt-0.5">
+                <span className="text-sm font-semibold text-primary-strong shrink-0 mt-0.5">
                   {t(locale, "guidedEdit")}
                 </span>
               </button>
@@ -469,7 +469,7 @@ export default function GuidedPage() {
           </div>
         )}
 
-        {error && <p className="text-base text-hifazat-red mt-4">{error}</p>}
+        {error && <p className="text-base text-destructive-strong mt-4">{error}</p>}
       </main>
 
       {/* Docked action bar.
@@ -521,7 +521,7 @@ export default function GuidedPage() {
           )}
 
           {step.optional && step.kind !== "review" && (
-            <Button onClick={handleSkip} variant="ghost">
+            <Button onClick={handleSkip} variant="quiet">
               {t(locale, "guidedSkip")}
             </Button>
           )}

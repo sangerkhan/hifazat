@@ -35,9 +35,9 @@ const NEXT_STATUSES = [
 ];
 
 const URGENCY_STYLES: Record<string, string> = {
-  emergency: "bg-hifazat-red text-white",
-  priority: "bg-hifazat-amber text-white",
-  standard: "bg-hifazat-bg text-hifazat-muted",
+  emergency: "bg-destructive text-destructive-foreground",
+  priority: "bg-warning text-warning-foreground",
+  standard: "bg-hifazat-bg text-muted-foreground",
 };
 
 export default function ReferralQueue({ referrals }: { referrals: QueuedReferral[] }) {
@@ -107,20 +107,20 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
   };
 
   const inputClass =
-    "w-full px-3 py-2 text-sm bg-white border border-hifazat-border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30";
+    "w-full px-3 py-2 text-sm bg-white border border-border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-ring/30";
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading font-serif text-[32px] text-hifazat-ink">Referrals</h1>
-        <p className="text-base text-hifazat-muted mt-1 leading-relaxed">
+        <p className="text-base text-muted-foreground mt-1 leading-relaxed">
           People who asked a lawyer to contact them, most urgent first. Contact details
           are hidden until you ask for them, and every reveal is recorded against your
           name.
         </p>
       </div>
 
-      <div className="bg-hifazat-teal-light border border-hifazat-teal/30 rounded-[16px] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="bg-primary-subtle border border-primary/25 rounded-[16px] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <label htmlFor="actor" className="text-base font-semibold text-hifazat-ink shrink-0">
           Your name
         </label>
@@ -133,11 +133,11 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
         />
       </div>
 
-      {error && <p className="text-base text-hifazat-red">{error}</p>}
+      {error && <p className="text-base text-destructive-strong">{error}</p>}
 
       {referrals.length === 0 && (
-        <div className="bg-white border border-hifazat-border rounded-[24px] p-6">
-          <p className="text-base text-hifazat-muted">No open referrals.</p>
+        <div className="bg-white border border-border rounded-[24px] p-6">
+          <p className="text-base text-muted-foreground">No open referrals.</p>
         </div>
       )}
 
@@ -150,7 +150,7 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
             <div
               key={r.reference}
               className={`bg-white border rounded-[20px] p-5 flex flex-col gap-3 ${
-                r.urgency === "emergency" ? "border-hifazat-red" : "border-hifazat-border"
+                r.urgency === "emergency" ? "border-destructive" : "border-border"
               }`}
             >
               <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -163,18 +163,18 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
                     >
                       {r.urgency}
                     </span>
-                    <span className="text-sm text-hifazat-muted">{r.category_label}</span>
-                    <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-bg text-hifazat-muted">
+                    <span className="text-sm text-muted-foreground">{r.category_label}</span>
+                    <span className="text-sm px-2 py-0.5 rounded-full bg-hifazat-bg text-muted-foreground">
                       {r.status}
                     </span>
-                    <span className="text-sm text-hifazat-muted">
+                    <span className="text-sm text-muted-foreground">
                       waiting {r.hours_waiting}h
                     </span>
                   </div>
                   <h3 className="text-base font-semibold text-hifazat-ink" dir="ltr">
                     {r.reference}
                   </h3>
-                  <p className="text-sm text-hifazat-muted">
+                  <p className="text-sm text-muted-foreground">
                     {r.name} · {[r.city, r.province].filter(Boolean).join(", ") || "location not given"}
                     {" · "}speaks {r.locale === "ur" ? "Urdu" : "English"}
                     {r.assigned_to ? ` · with ${r.assigned_to}` : ""}
@@ -186,7 +186,7 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
                   living with the person who hurt them, an unexpected call can be
                   what escalates the danger. */}
               {!r.safe_to_call && (
-                <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[12px] px-4 py-3">
+                <div className="bg-destructive-subtle border-2 border-destructive rounded-[12px] px-4 py-3">
                   <p className="text-base font-semibold text-hifazat-ink">
                     Do not call this number first.
                   </p>
@@ -203,14 +203,14 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
               )}
 
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm text-hifazat-muted" dir="ltr">
+                <span className="text-sm text-muted-foreground" dir="ltr">
                   {shown ? shown.phone : r.phone_masked}
                 </span>
                 {!shown ? (
                   <button
                     onClick={() => reveal(r.reference)}
                     disabled={isBusy}
-                    className="px-3 py-1.5 rounded-full text-sm font-semibold border border-hifazat-border text-hifazat-ink disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-full text-sm font-semibold border border-border text-hifazat-ink disabled:opacity-50"
                   >
                     Show contact details
                   </button>
@@ -218,14 +218,14 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
                   <>
                     <a
                       href={`tel:${shown.phone}`}
-                      className="px-3 py-1.5 rounded-full text-sm font-semibold bg-hifazat-teal text-white"
+                      className="px-3 py-1.5 rounded-full text-sm font-semibold bg-primary text-white"
                     >
                       Call
                     </a>
                     {shown.email && (
                       <a
                         href={`mailto:${shown.email}`}
-                        className="px-3 py-1.5 rounded-full text-sm font-semibold border border-hifazat-border text-hifazat-ink"
+                        className="px-3 py-1.5 rounded-full text-sm font-semibold border border-border text-hifazat-ink"
                       >
                         Email
                       </a>
@@ -235,7 +235,7 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
               </div>
 
               <details className="text-sm">
-                <summary className="cursor-pointer font-semibold text-hifazat-teal">
+                <summary className="cursor-pointer font-semibold text-primary-strong">
                   What they told us
                 </summary>
                 <p className="mt-2 text-hifazat-ink/80 leading-relaxed whitespace-pre-wrap bg-hifazat-bg rounded-[10px] p-3">
@@ -244,7 +244,7 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
               </details>
 
               <label className="flex flex-col gap-1">
-                <span className="text-sm text-hifazat-muted">Desk notes</span>
+                <span className="text-sm text-muted-foreground">Desk notes</span>
                 <textarea
                   rows={2}
                   value={notes[r.reference] ?? r.desk_notes ?? ""}
@@ -261,7 +261,7 @@ export default function ReferralQueue({ referrals }: { referrals: QueuedReferral
                     key={s.value}
                     onClick={() => setStatus(r.reference, s.value)}
                     disabled={isBusy}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium border border-hifazat-border text-hifazat-ink hover:border-hifazat-teal disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-full text-sm font-medium border border-border text-hifazat-ink hover:border-primary disabled:opacity-50"
                   >
                     {s.label}
                   </button>

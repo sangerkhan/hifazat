@@ -13,8 +13,14 @@ type BestTime = "any" | "morning" | "afternoon" | "evening";
 interface Props {
   /** Structured facts from the guided flow, used to route to the right desk. */
   context?: ReferralCaseContext;
-  /** The account of the situation, so the lawyer does not start from nothing. */
-  narrative: string;
+  /**
+   * The account of the situation, so the lawyer does not start from nothing.
+   *
+   * Absent when someone comes straight to legal aid without an assessment, in
+   * which case the form asks for it directly. Requiring an assessment first
+   * was why the free-text route and the home page could not offer this at all.
+   */
+  narrative?: string;
   assessmentCategory?: string;
   assessmentSeverity?: string;
   onClose: () => void;
@@ -37,6 +43,11 @@ export default function ReferralForm({
   const { locale } = useLanguage();
   const isUrdu = locale === "ur";
 
+  // Only used when no narrative was handed in — see the prop's note.
+  const [ownNarrative, setOwnNarrative] = useState("");
+  const needsNarrative = narrative === undefined;
+  const effectiveNarrative = narrative ?? ownNarrative;
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
@@ -57,6 +68,10 @@ export default function ReferralForm({
       setError(t(locale, "referralRequiredFields"));
       return;
     }
+    if (needsNarrative && effectiveNarrative.trim().length < 10) {
+      setError(t(locale, "referralNarrativeRequired"));
+      return;
+    }
     if (!consent) {
       setError(t(locale, "referralConsentRequired"));
       return;
@@ -75,7 +90,7 @@ export default function ReferralForm({
           safeToCall,
           bestTime,
           consent,
-          narrative,
+          narrative: effectiveNarrative,
           context,
           locale,
           assessmentCategory,
@@ -109,7 +124,7 @@ export default function ReferralForm({
         {/* Confirmation, reference and safety note are one thought, so they sit
             close together and the actions sit apart from them. */}
         <div className="flex flex-col gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-hifazat-teal text-white">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white">
             <CheckIcon size={24} />
           </span>
           <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
@@ -120,9 +135,9 @@ export default function ReferralForm({
           </p>
 
           <Card tone="raised" elevation="soft" className="px-4 py-3 flex flex-col gap-0.5">
-            <p className="text-sm text-hifazat-muted">{t(locale, "referralReference")}</p>
+            <p className="text-sm text-muted-foreground">{t(locale, "referralReference")}</p>
             <p
-              className="font-heading font-serif text-2xl text-hifazat-teal tracking-wide"
+              className="font-heading font-serif text-2xl text-primary-strong tracking-wide"
               dir="ltr"
             >
               {reference}
@@ -135,10 +150,10 @@ export default function ReferralForm({
         </div>
 
         <div className="flex flex-col gap-3">
-          <Button href="tel:15" variant="danger" size="lg" icon={<PhoneIcon size={20} />}>
+          <Button href="tel:15" variant="destructive" size="lg" icon={<PhoneIcon size={20} />}>
             {t(locale, "resultCallPolice")}
           </Button>
-          <Button onClick={onClose} variant="ghost">
+          <Button onClick={onClose} variant="quiet">
             {t(locale, "goBack")}
           </Button>
         </div>
@@ -149,7 +164,7 @@ export default function ReferralForm({
   // 16px text is what actually stops iOS zooming the page when a field takes
   // focus, and min-h matches the 48px floor every button uses.
   const inputClass =
-    "w-full min-h-[48px] px-4 py-3 text-base text-hifazat-ink bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] transition-colors focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30 focus:border-hifazat-teal placeholder:text-hifazat-muted/60";
+    "w-full min-h-[48px] px-4 py-3 text-base text-hifazat-ink bg-surface-raised border border-border/60 shadow-[var(--shadow-soft)] rounded-[16px] transition-colors focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary placeholder:text-muted-foreground/60";
 
   return (
     <Card elevation="float" className="p-6 flex flex-col gap-7">
@@ -157,10 +172,33 @@ export default function ReferralForm({
         <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
           {t(locale, "referralHeading")}
         </h3>
-        <p className="text-base text-hifazat-muted leading-relaxed">
+        <p className="text-base text-muted-foreground leading-relaxed">
           {t(locale, "referralIntro")}
         </p>
       </div>
+
+      {needsNarrative && (
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="referral-narrative"
+            className="text-base font-semibold text-hifazat-ink"
+          >
+            {t(locale, "referralNarrativeLabel")}
+          </label>
+          <textarea
+            id="referral-narrative"
+            value={ownNarrative}
+            onChange={(e) => setOwnNarrative(e.target.value)}
+            placeholder={t(locale, "referralNarrativePlaceholder")}
+            dir={isUrdu ? "rtl" : "ltr"}
+            rows={5}
+            className={`${inputClass} min-h-[132px] resize-none py-3`}
+          />
+          <p className="text-sm text-muted-foreground">
+            {t(locale, "referralNarrativeHelp")}
+          </p>
+        </div>
+      )}
 
       {/* Name */}
       <div className="flex flex-col gap-2">
@@ -177,7 +215,7 @@ export default function ReferralForm({
           autoComplete="off"
           className={inputClass}
         />
-        <p className="text-sm text-hifazat-muted">{t(locale, "referralNameHelp")}</p>
+        <p className="text-sm text-muted-foreground">{t(locale, "referralNameHelp")}</p>
       </div>
 
       {/* Phone */}
@@ -197,7 +235,7 @@ export default function ReferralForm({
           autoComplete="off"
           className={`${inputClass} text-start`}
         />
-        <p className="text-sm text-hifazat-muted">{t(locale, "referralPhoneHelp")}</p>
+        <p className="text-sm text-muted-foreground">{t(locale, "referralPhoneHelp")}</p>
       </div>
 
       {/* Safe to call — the field that matters most for someone still living
@@ -219,8 +257,8 @@ export default function ReferralForm({
             aria-pressed={safeToCall === value}
             className={`tappable w-full text-start min-h-[56px] px-4 py-3 rounded-[16px] text-base border flex items-center gap-3 ${
               safeToCall === value
-                ? "bg-surface-accent border-hifazat-teal text-hifazat-ink font-medium shadow-[var(--shadow-soft)]"
-                : "bg-surface-raised border-hifazat-border/60 text-hifazat-ink shadow-[var(--shadow-soft)]"
+                ? "bg-surface-accent border-primary text-hifazat-ink font-medium shadow-[var(--shadow-soft)]"
+                : "bg-surface-raised border-border/60 text-hifazat-ink shadow-[var(--shadow-soft)]"
             }`}
           >
             {/* Neither answer advances the form, so the choice needs to stay
@@ -228,8 +266,8 @@ export default function ReferralForm({
             <span
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
                 safeToCall === value
-                  ? "bg-hifazat-teal border-hifazat-teal text-white"
-                  : "border-hifazat-border"
+                  ? "bg-primary border-primary text-white"
+                  : "border-border"
               }`}
             >
               {safeToCall === value && <CheckIcon size={14} />}
@@ -237,7 +275,7 @@ export default function ReferralForm({
             <span className="flex-1">{t(locale, key)}</span>
           </button>
         ))}
-        <p className="text-sm text-hifazat-muted">{t(locale, "referralSafeHelp")}</p>
+        <p className="text-sm text-muted-foreground">{t(locale, "referralSafeHelp")}</p>
       </fieldset>
 
       {/* Best time */}
@@ -254,8 +292,8 @@ export default function ReferralForm({
               aria-pressed={bestTime === value}
               className={`tappable inline-flex items-center min-h-[44px] px-4 rounded-full text-base border ${
                 bestTime === value
-                  ? "bg-hifazat-teal border-hifazat-teal text-white font-medium shadow-[var(--shadow-soft)]"
-                  : "bg-surface-raised border-hifazat-border/60 text-hifazat-muted shadow-[var(--shadow-soft)]"
+                  ? "bg-primary border-primary text-white font-medium shadow-[var(--shadow-soft)]"
+                  : "bg-surface-raised border-border/60 text-muted-foreground shadow-[var(--shadow-soft)]"
               }`}
             >
               {t(locale, TIME_KEYS[value])}
@@ -287,7 +325,7 @@ export default function ReferralForm({
       <label
         className={`tappable flex items-start gap-3 cursor-pointer rounded-[16px] border p-4 ${
           consent
-            ? "bg-surface-accent border-hifazat-teal"
+            ? "bg-surface-accent border-primary"
             : "bg-surface-sunken border-transparent"
         }`}
       >
@@ -295,18 +333,18 @@ export default function ReferralForm({
           type="checkbox"
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
-          className="mt-0.5 h-6 w-6 shrink-0 accent-[var(--color-hifazat-teal)]"
+          className="mt-0.5 h-6 w-6 shrink-0 accent-[var(--color-primary)]"
         />
         <span className="text-base text-hifazat-ink leading-relaxed">
           {t(locale, "referralConsent")}
         </span>
       </label>
 
-      <p className="text-sm text-hifazat-muted leading-relaxed">
+      <p className="text-sm text-muted-foreground leading-relaxed">
         {t(locale, "referralPrivacy")}
       </p>
 
-      {error && <p className="text-base text-hifazat-red">{error}</p>}
+      {error && <p className="text-base text-destructive-strong">{error}</p>}
 
       <div className="flex flex-col gap-3">
         <Button
@@ -324,7 +362,7 @@ export default function ReferralForm({
         >
           {submitting ? t(locale, "referralSubmitting") : t(locale, "referralSubmit")}
         </Button>
-        <Button onClick={onClose} disabled={submitting} variant="ghost">
+        <Button onClick={onClose} disabled={submitting} variant="quiet">
           {t(locale, "referralCancel")}
         </Button>
       </div>

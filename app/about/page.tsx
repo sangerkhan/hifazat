@@ -30,7 +30,7 @@ export default function AboutPage() {
           <h1 className="font-heading font-serif text-[40px] leading-[1.2] text-hifazat-ink">
             {t(locale, "aboutTitle")}
           </h1>
-          <p className="text-base text-hifazat-muted leading-relaxed">
+          <p className="text-base text-muted-foreground leading-relaxed">
             {localized(ABOUT_INTRO, locale)}
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function AboutPage() {
             ))}
 
             {section.bullets && (
-              <ul className="flex flex-col gap-2 ps-5 list-disc marker:text-hifazat-teal">
+              <ul className="flex flex-col gap-2 ps-5 list-disc marker:text-primary-strong">
                 {section.bullets.map((bullet, i) => (
                   <li key={i} className="text-base text-hifazat-ink/80 leading-relaxed">
                     {localized(bullet, locale)}
@@ -65,7 +65,7 @@ export default function AboutPage() {
           </Card>
         ))}
 
-        <p className="text-sm text-hifazat-muted text-center">
+        <p className="text-sm text-muted-foreground text-center">
           {t(locale, "aboutLastUpdated")}
         </p>
 

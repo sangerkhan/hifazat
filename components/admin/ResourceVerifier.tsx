@@ -108,7 +108,7 @@ export default function ResourceVerifier({
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
 
   const inputClass =
-    "w-full px-3 py-2 text-sm bg-white border border-hifazat-border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-hifazat-teal/30";
+    "w-full px-3 py-2 text-sm bg-white border border-border rounded-[10px] focus:outline-none focus:ring-2 focus:ring-ring/30";
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,7 +116,7 @@ export default function ResourceVerifier({
         <h1 className="font-heading font-serif text-[32px] text-hifazat-ink">
           Verify helplines
         </h1>
-        <p className="text-base text-hifazat-muted mt-1 leading-relaxed">
+        <p className="text-base text-muted-foreground mt-1 leading-relaxed">
           Dial the number, confirm the organisation still runs the service described,
           then confirm it here. Until you do, it is not shown to users as a
           tap-to-call link and the assessment will never recommend it.
@@ -124,7 +124,7 @@ export default function ResourceVerifier({
       </div>
 
       {/* Coverage — the gap report, worst first */}
-      <div className="bg-white border border-hifazat-border rounded-[24px] p-5">
+      <div className="bg-white border border-border rounded-[24px] p-5">
         <h2 className="text-base font-semibold text-hifazat-ink mb-3">
           Confirmed local helplines by province
         </h2>
@@ -134,15 +134,15 @@ export default function ResourceVerifier({
               key={row.province}
               className={`rounded-[12px] px-3 py-2 border ${
                 row.confirmed_local === 0
-                  ? "bg-hifazat-red-light border-hifazat-red"
-                  : "bg-hifazat-bg border-hifazat-border"
+                  ? "bg-destructive-subtle border-destructive"
+                  : "bg-hifazat-bg border-border"
               }`}
             >
-              <div className="text-sm text-hifazat-muted">{row.province_name}</div>
+              <div className="text-sm text-muted-foreground">{row.province_name}</div>
               <div className="text-base font-semibold text-hifazat-ink">
                 {row.confirmed_local} confirmed
                 {row.unconfirmed_local > 0 && (
-                  <span className="text-hifazat-muted font-normal">
+                  <span className="text-muted-foreground font-normal">
                     {" "}· {row.unconfirmed_local} waiting
                   </span>
                 )}
@@ -153,7 +153,7 @@ export default function ResourceVerifier({
       </div>
 
       {/* Who is doing the verifying */}
-      <div className="bg-hifazat-teal-light border border-hifazat-teal/30 rounded-[16px] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="bg-primary-subtle border border-primary/25 rounded-[16px] p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <label htmlFor="verifier" className="text-base font-semibold text-hifazat-ink shrink-0">
           Your name
         </label>
@@ -164,7 +164,7 @@ export default function ResourceVerifier({
           placeholder="e.g. Ayesha (PNCY legal desk)"
           className={`${inputClass} sm:max-w-sm`}
         />
-        <span className="text-sm text-hifazat-muted">
+        <span className="text-sm text-muted-foreground">
           Recorded against every change you make.
         </span>
       </div>
@@ -176,8 +176,8 @@ export default function ResourceVerifier({
             onClick={() => setFilter(value)}
             className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
               filter === value
-                ? "bg-hifazat-teal border-hifazat-teal text-white"
-                : "bg-white border-hifazat-border text-hifazat-muted"
+                ? "bg-primary border-primary text-white"
+                : "bg-white border-border text-muted-foreground"
             }`}
           >
             {value === "unconfirmed" ? "Awaiting verification" : value === "confirmed" ? "Confirmed" : "All"}
@@ -186,11 +186,11 @@ export default function ResourceVerifier({
         ))}
       </div>
 
-      {error && <p className="text-base text-hifazat-red">{error}</p>}
+      {error && <p className="text-base text-destructive-strong">{error}</p>}
 
       <div className="flex flex-col gap-4">
         {shown.length === 0 && (
-          <p className="text-base text-hifazat-muted">Nothing here.</p>
+          <p className="text-base text-muted-foreground">Nothing here.</p>
         )}
 
         {shown.map((r) => {
@@ -201,20 +201,20 @@ export default function ResourceVerifier({
           return (
             <div
               key={r.id}
-              className="bg-white border border-hifazat-border rounded-[20px] p-5 flex flex-col gap-3"
+              className="bg-white border border-border rounded-[20px] p-5 flex flex-col gap-3"
             >
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <h3 className="text-base font-semibold text-hifazat-ink">{r.name}</h3>
-                  <p className="text-sm text-hifazat-muted">
+                  <p className="text-sm text-muted-foreground">
                     {r.type} · {r.scope.join(", ")} · priority {r.priority}
                   </p>
                 </div>
                 <span
                   className={`text-sm font-medium px-3 py-1 rounded-full shrink-0 ${
                     r.verification === "confirmed"
-                      ? "bg-hifazat-teal-light text-hifazat-teal"
-                      : "bg-hifazat-amber-light text-hifazat-amber"
+                      ? "bg-success-subtle text-success-strong"
+                      : "bg-warning-subtle text-warning-strong"
                   }`}
                 >
                   {r.verification === "confirmed" ? "Confirmed" : "Awaiting"}
@@ -228,7 +228,7 @@ export default function ResourceVerifier({
               )}
 
               {r.verified_by && (
-                <p className="text-sm text-hifazat-muted">
+                <p className="text-sm text-muted-foreground">
                   Last touched by {r.verified_by}
                   {r.verified_at ? ` on ${new Date(r.verified_at).toLocaleDateString()}` : ""}
                   {r.recheck_due_at
@@ -240,7 +240,7 @@ export default function ResourceVerifier({
               <div className="grid gap-3 sm:grid-cols-2">
                 {(["phone", "whatsapp", "email", "website"] as const).map((field) => (
                   <label key={field} className="flex flex-col gap-1">
-                    <span className="text-sm text-hifazat-muted capitalize">{field}</span>
+                    <span className="text-sm text-muted-foreground capitalize">{field}</span>
                     <input
                       value={(edit[field] as string) ?? r[field] ?? ""}
                       onChange={(e) => setEdit(r.id, field, e.target.value)}
@@ -256,7 +256,7 @@ export default function ResourceVerifier({
                   <button
                     onClick={() => act(r.id, "update", edit)}
                     disabled={isBusy}
-                    className="px-4 py-2 rounded-full text-sm font-semibold bg-hifazat-dark-teal text-white disabled:opacity-50"
+                    className="px-4 py-2 rounded-full text-sm font-semibold bg-primary-strong text-white disabled:opacity-50"
                   >
                     Save details
                   </button>
@@ -266,7 +266,7 @@ export default function ResourceVerifier({
                   <button
                     onClick={() => act(r.id, "confirm")}
                     disabled={isBusy}
-                    className="px-4 py-2 rounded-full text-sm font-semibold bg-hifazat-teal text-white disabled:opacity-50"
+                    className="px-4 py-2 rounded-full text-sm font-semibold bg-primary text-white disabled:opacity-50"
                   >
                     {isBusy ? "Saving..." : "I dialled this — confirm"}
                   </button>
@@ -278,7 +278,7 @@ export default function ResourceVerifier({
                       })
                     }
                     disabled={isBusy}
-                    className="px-4 py-2 rounded-full text-sm font-semibold border border-hifazat-red text-hifazat-red disabled:opacity-50"
+                    className="px-4 py-2 rounded-full text-sm font-semibold border border-destructive text-destructive-strong disabled:opacity-50"
                   >
                     {isBusy ? "Saving..." : "Number is dead — unconfirm"}
                   </button>
@@ -287,7 +287,7 @@ export default function ResourceVerifier({
                 {r.phone && (
                   <a
                     href={`tel:${r.phone}`}
-                    className="px-4 py-2 rounded-full text-sm font-semibold border border-hifazat-border text-hifazat-ink"
+                    className="px-4 py-2 rounded-full text-sm font-semibold border border-border text-hifazat-ink"
                   >
                     Call {r.phone}
                   </a>
