@@ -20,9 +20,13 @@ export default function SiteFooter({
   /** Off where the page already carries an emergency panel, so the numbers are
       not repeated twice on one screen. */
   showEmergency = true,
+  /** Lets the page own the gap above the footer, since how far chrome sits
+      from content depends on what the content was. */
+  className = "",
 }: {
   showNav?: boolean;
   showEmergency?: boolean;
+  className?: string;
 }) {
   const { locale } = useLanguage();
 
@@ -33,7 +37,12 @@ export default function SiteFooter({
   ];
 
   return (
-    <Card tone="sunken" elevation="none" as="aside" className="p-5 flex flex-col items-center gap-4 text-center">
+    <Card
+      tone="sunken"
+      elevation="none"
+      as="aside"
+      className={`p-6 flex flex-col items-center gap-4 text-center ${className}`}
+    >
       <Image src="/logo.png" alt="Hifazat" width={120} height={32} className="h-6 w-auto" />
 
       {showNav && (

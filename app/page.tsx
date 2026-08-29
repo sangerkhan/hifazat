@@ -80,7 +80,10 @@ function ExploreCard({
   return (
     <Link
       href={href}
-      className="tappable liftable flex flex-col items-center justify-center gap-2 rounded-[18px] border border-hifazat-border/50 bg-surface-raised px-3 py-5 text-center shadow-[var(--shadow-soft)] hover:border-hifazat-teal/40"
+      // `justify-start`, not centre: the grid stretches all three cards to the
+      // same height, so centring the contents pushed the icon of the one card
+      // whose label wraps up out of line with the other two.
+      className="tappable liftable flex flex-col items-center justify-start gap-2.5 rounded-[18px] border border-hifazat-border/50 bg-surface-raised px-3 py-5 text-center shadow-[var(--shadow-soft)] hover:border-hifazat-teal/40 lg:flex-row lg:justify-center lg:gap-3 lg:py-6"
     >
       <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-surface-accent text-hifazat-teal">
         {icon}
@@ -95,9 +98,15 @@ export default function Home() {
 
   return (
     <PageShell width="wide">
-      <main className="flex-1 px-5 pb-10 flex flex-col gap-7 lg:gap-9">
+      {/* Spacing is doing hierarchy work here, so it is set per boundary rather
+          than by one uniform gap. Every section used to sit exactly 28px from
+          the next, which made the primary choice, the secondary links and the
+          emergency panel read as one undifferentiated stack. The rule now:
+          12px inside a group, ~30px between groups in a section, ~48px between
+          sections. */}
+      <main className="flex-1 px-5 pb-12 flex flex-col">
         <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-center">
-          <div className="text-center lg:text-start flex flex-col gap-2 pt-2 lg:pt-0">
+          <div className="text-center lg:text-start flex flex-col gap-3 pt-5 lg:pt-0">
             <h1 className="font-heading text-[38px] lg:text-[54px] font-normal leading-[1.12] text-hifazat-ink font-serif">
               {t(locale, "heroHeadline")}
             </h1>
@@ -107,7 +116,7 @@ export default function Home() {
           </div>
 
           {/* The decision, and nothing competing with it */}
-          <div className="flex flex-col gap-3 mt-6 lg:mt-0">
+          <div className="flex flex-col gap-3 mt-7 lg:mt-0">
             <ChoiceCard
               href="/guided"
               emphasis
@@ -122,8 +131,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Secondary destinations */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Secondary destinations. The largest break on the page sits above
+            this row, because it is the one real change in rank: from the thing
+            you came to do to the things you might browse. */}
+        <div className="grid grid-cols-3 gap-3 mt-11 lg:mt-14">
           <ExploreCard
             href="/rights"
             icon={<BookIcon size={22} />}
@@ -144,7 +155,7 @@ export default function Home() {
         {/* Emergency sits below the choices deliberately. It has to be
             unmissable when it is needed, but a red panel above the fold pulls
             attention away from the two things most people are here to do. */}
-        <Card tone="danger" elevation="soft" className="border-2 p-5 flex flex-col gap-3">
+        <Card tone="danger" elevation="soft" className="border-2 p-5 mt-8 lg:mt-10 flex flex-col gap-4">
           <div className="flex items-center gap-2.5 justify-center">
             <span className="text-hifazat-red">
               <PhoneIcon size={20} />
@@ -164,7 +175,7 @@ export default function Home() {
           </div>
         </Card>
 
-        <SiteFooter showNav={false} showEmergency={false} />
+        <SiteFooter showNav={false} showEmergency={false} className="mt-11 lg:mt-14" />
       </main>
     </PageShell>
   );
