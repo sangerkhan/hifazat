@@ -13,6 +13,10 @@
  * whole point of moving this data into a database.
  */
 
+// Reaches the database through the service-role client, so it is server-only
+// for the same reason that client is.
+import "server-only";
+
 import { withFallback, isDatabaseConfigured } from "./client";
 import {
   LEGAL_INSTRUMENTS,

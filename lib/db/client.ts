@@ -1,3 +1,8 @@
+// This module holds the service-role key, which bypasses every row-level
+// security policy in the database. `server-only` makes importing it from a
+// client component a build failure instead of a key shipped to the browser.
+import "server-only";
+
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -15,7 +20,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * can be done without a flag day.
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Deliberately not falling back to a NEXT_PUBLIC_ variable. Nothing here is
+// safe to expose, and a NEXT_PUBLIC_ read sitting one line above the
+// service-role key is an invitation to add a second one for the key itself.
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let cached: SupabaseClient | null = null;

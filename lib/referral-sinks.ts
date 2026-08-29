@@ -12,6 +12,10 @@
  * looking for help.
  */
 
+// Holds the delivery credentials — the Resend API key and the Sheets webhook
+// secret — and posts referrals containing someone's name and phone number.
+import "server-only";
+
 import { toFlatRow, type ReferralRecord } from "./referral";
 import { getServiceClient, isDatabaseConfigured } from "./db/client";
 

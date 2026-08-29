@@ -1,3 +1,7 @@
+// Holds the admin password and the session-signing secret. Neither may ever
+// be bundled for the browser; this turns that mistake into a build error.
+import "server-only";
+
 import { createHmac, timingSafeEqual, createHash } from "node:crypto";
 import { cookies } from "next/headers";
 
