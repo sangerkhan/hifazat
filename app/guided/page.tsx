@@ -385,11 +385,18 @@ export default function GuidedPage() {
   const answered = isStepAnswered(step, answers);
   const summary = summariseAnswers(answers, additionalText, locale);
 
+  // Single-select steps advance as soon as an option is tapped, so they have no
+  // button and should not pay for a docked bar. Everything else does.
+  const hasPrimaryAction =
+    step.kind === "review" || step.kind === "multi" || step.kind === "text";
+  const hasSkip = Boolean(step.optional) && step.kind !== "review";
+  const showActionBar = hasPrimaryAction || hasSkip;
+
   return (
     <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
       {header}
 
-      <main className="flex-1 px-5 pb-10">
+      <main className={`flex-1 px-5 ${showActionBar ? "pb-44" : "pb-10"}`}>
         {/* Back */}
         {currentIndex > 0 ? (
           <button
@@ -495,9 +502,27 @@ export default function GuidedPage() {
         )}
 
         {error && <p className="text-base text-hifazat-red mt-4">{error}</p>}
+      </main>
 
-        {/* Controls */}
-        <div className="flex flex-col gap-3 mt-6">
+      {/* Docked action bar.
+          The review step is a long list, and so are the multi-select steps, so a
+          button at the end of the document means scrolling to the bottom before
+          you can move on. Fixing it to the viewport keeps it in reach while the
+          answers still scroll underneath.
+
+          The gradient is what stops it reading as a cut-off bar: content fades
+          into the page background rather than sliding under a hard edge. It is
+          pointer-events-none so the faded region still scrolls the content
+          beneath it, while the solid strip below blocks taps that would
+          otherwise land on options hidden behind the bar. */}
+      {showActionBar && (
+        <div className="fixed inset-x-0 bottom-0 z-20">
+          <div
+            aria-hidden
+            className="h-20 bg-gradient-to-t from-hifazat-bg to-transparent pointer-events-none"
+          />
+          <div className="bg-hifazat-bg pb-6">
+            <div className="w-full max-w-[600px] mx-auto px-5 flex flex-col gap-3">
           {step.kind === "review" ? (
             <button
               onClick={() => submit()}
@@ -531,13 +556,15 @@ export default function GuidedPage() {
           {step.optional && step.kind !== "review" && (
             <button
               onClick={handleSkip}
-              className="w-full py-3 text-hifazat-muted font-medium text-base"
+              className="w-full py-2 text-hifazat-muted font-medium text-base"
             >
               {t(locale, "guidedSkip")}
             </button>
           )}
+            </div>
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }
