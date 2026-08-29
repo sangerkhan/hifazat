@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import LanguageToggle from "@/components/LanguageToggle";
 import SiteFooter from "@/components/SiteFooter";
+import PageShell from "@/components/ui/PageShell";
+import BackButton from "@/components/ui/BackButton";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { GlobeIcon, MailIcon, PhoneIcon } from "@/components/ui/Icon";
 import { useLanguage } from "@/lib/language-context";
 import { t, tCount, type TranslationKey } from "@/lib/i18n";
 import { filterResources, type Resource, type ResourceType } from "@/lib/resources";
@@ -101,37 +103,17 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
   );
 
   const chipClass = (active: boolean) =>
-    `px-4 py-2 rounded-full text-base whitespace-nowrap border transition-colors ${
+    `tappable inline-flex items-center min-h-[44px] px-4 rounded-full text-base whitespace-nowrap border ${
       active
-        ? "bg-hifazat-teal border-hifazat-teal text-white font-medium"
-        : "bg-white border-hifazat-border text-hifazat-muted"
+        ? "bg-hifazat-teal border-hifazat-teal text-white font-medium shadow-[var(--shadow-soft)]"
+        : "bg-surface-raised border-hifazat-border/60 text-hifazat-muted shadow-[var(--shadow-soft)]"
     }`;
 
   return (
-    <div className="flex flex-col min-h-screen w-full max-w-[600px] lg:max-w-5xl mx-auto">
-      <header className="flex flex-col items-center gap-4 px-5 py-6">
-        <Link href="/">
-          <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
-        </Link>
-        <LanguageToggle />
-      </header>
+    <PageShell width="wide">
 
       <main className="flex-1 px-5 pb-10">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 text-sm text-hifazat-muted mb-6 w-fit"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="rtl:rotate-180">
-            <path
-              d="M10 12L6 8L10 4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {t(locale, "goBack")}
-        </Link>
+        <BackButton href="/" />
 
         <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-1">
           {t(locale, "resourcesHeading")}
@@ -226,7 +208,7 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
           <SiteFooter />
         </div>
       </main>
-    </div>
+    </PageShell>
   );
 }
 
@@ -257,12 +239,11 @@ function ResourceCard({
         .join(isUrdu ? "، " : ", ");
 
   return (
-    <div
-      className={`bg-white border rounded-[24px] p-5 ${
-        unverified ? "border-dashed border-hifazat-border" : "border-hifazat-border"
-      }`}
+    <Card
+      elevation={unverified ? "none" : "card"}
+      className={`p-5 flex flex-col gap-3 ${unverified ? "border-dashed bg-transparent" : ""}`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2">
         <h3 className="text-base font-semibold text-hifazat-ink leading-tight">{name}</h3>
         <span
           className={`text-sm font-medium px-2.5 py-0.5 rounded-full shrink-0 ${
@@ -273,53 +254,56 @@ function ResourceCard({
         </span>
       </div>
 
-      {/* An unverified number is deliberately not rendered as a tel: link. */}
-      {resource.phone && !unverified && (
-        <a
-          href={`tel:${resource.phone}`}
-          dir="ltr"
-          className="inline-block font-heading font-serif text-2xl text-hifazat-teal mb-2"
-        >
-          {resource.phone}
-        </a>
-      )}
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
-        {resource.whatsapp && !unverified && (
-          <a
-            href={`https://wa.me/${resource.whatsapp.replace(/[^\d]/g, "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-semibold text-hifazat-teal underline"
-          >
-            {t(locale, "resourcesWhatsapp")}
-          </a>
-        )}
-        {resource.website && (
-          <a
-            href={resource.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-semibold text-hifazat-teal underline"
-          >
-            {t(locale, "resourcesWebsite")}
-          </a>
-        )}
-        {resource.email && !unverified && (
-          <a
-            href={`mailto:${resource.email}`}
-            dir="ltr"
-            className="text-sm font-semibold text-hifazat-teal underline"
-          >
-            {t(locale, "resourcesEmail")}
-          </a>
-        )}
-      </div>
-
-      <p className="text-sm text-hifazat-muted mb-1">
+      <p className="text-sm text-hifazat-muted">
         {hours} · {scopeLabel}
       </p>
+
+      {/* Contact actions are buttons. An unverified number is deliberately not
+          offered as one — the website is the only route we will stand behind. */}
+      <div className="flex flex-col gap-2">
+        {resource.phone && !unverified && (
+          <Button href={`tel:${resource.phone}`} icon={<PhoneIcon size={18} />}>
+            <span dir="ltr">{resource.phone}</span>
+          </Button>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {resource.whatsapp && !unverified && (
+            <Button
+              href={`https://wa.me/${resource.whatsapp.replace(/[^\d]/g, "")}`}
+              variant="surface"
+              fullWidth={false}
+              icon={<PhoneIcon size={18} />}
+              className="flex-1 min-w-[8rem]"
+            >
+              {t(locale, "resourcesWhatsapp")}
+            </Button>
+          )}
+          {resource.website && (
+            <Button
+              href={resource.website}
+              variant="surface"
+              fullWidth={false}
+              icon={<GlobeIcon size={18} />}
+              className="flex-1 min-w-[8rem]"
+            >
+              {t(locale, "resourcesWebsite")}
+            </Button>
+          )}
+          {resource.email && !unverified && (
+            <Button
+              href={`mailto:${resource.email}`}
+              variant="surface"
+              fullWidth={false}
+              icon={<MailIcon size={18} />}
+              className="flex-1 min-w-[8rem]"
+            >
+              {t(locale, "resourcesEmail")}
+            </Button>
+          )}
+        </div>
+      </div>
+
       <p className="text-sm text-hifazat-muted leading-relaxed">{description}</p>
-    </div>
+    </Card>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import LanguageToggle from "@/components/LanguageToggle";
 import SiteFooter from "@/components/SiteFooter";
+import PageShell from "@/components/ui/PageShell";
+import BackButton from "@/components/ui/BackButton";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { ChecklistIcon, ChevronDownIcon, LifebuoyIcon } from "@/components/ui/Icon";
 import { useLanguage } from "@/lib/language-context";
 import { t } from "@/lib/i18n";
 import { localized } from "@/lib/guided-flow";
@@ -66,30 +68,19 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
   };
 
   const chip = (active: boolean) =>
-    `px-4 py-2 rounded-full text-base whitespace-nowrap border transition-colors ${
+    `tappable inline-flex items-center min-h-[44px] px-4 rounded-full text-base whitespace-nowrap border ${
       active
-        ? "bg-hifazat-teal border-hifazat-teal text-white font-medium"
-        : "bg-white border-hifazat-border text-hifazat-muted"
+        ? "bg-hifazat-teal border-hifazat-teal text-white font-medium shadow-[var(--shadow-soft)]"
+        : "bg-surface-raised border-hifazat-border/60 text-hifazat-muted shadow-[var(--shadow-soft)]"
     }`;
 
   const shown = useMemo(() => categories, [categories]);
 
   return (
-    <div className="flex flex-col min-h-screen w-full max-w-[600px] lg:max-w-4xl mx-auto">
-      <header className="flex flex-col items-center gap-4 px-5 py-6">
-        <Link href="/">
-          <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
-        </Link>
-        <LanguageToggle />
-      </header>
+    <PageShell width="wide">
 
       <main className="flex-1 px-5 pb-10 flex flex-col gap-5">
-        <Link href="/" className="flex items-center gap-1.5 text-sm text-hifazat-muted w-fit">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="rtl:rotate-180">
-            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {t(locale, "goBack")}
-        </Link>
+        <BackButton href="/" />
 
         <div className="flex flex-col gap-2">
           <h1 className="font-heading font-serif text-[40px] leading-[1.2] text-hifazat-ink">
@@ -126,13 +117,15 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
             const actions = CATEGORY_ACTIONS[category.id] ?? [];
 
             return (
-              <section
+              <Card
                 key={category.id}
-                className="bg-white border border-hifazat-border rounded-[24px] overflow-hidden"
+                as="section"
+                elevation={isOpen ? "float" : "card"}
+                className="overflow-hidden"
               >
                 <button
                   onClick={() => setOpen(isOpen ? null : category.id)}
-                  className="w-full text-start p-5 flex items-start justify-between gap-3"
+                  className="tappable w-full text-start p-5 flex items-start justify-between gap-3"
                 >
                   <span className="flex-1">
                     <span className="block font-heading font-serif text-2xl text-hifazat-ink">
@@ -145,10 +138,12 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
                       {category.indicators.length} {t(locale, "rightsThingsCount")}
                     </span>
                   </span>
-                  <span className={`text-hifazat-teal shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-accent text-hifazat-teal transition-transform ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  >
+                    <ChevronDownIcon size={20} />
                   </span>
                 </button>
 
@@ -239,28 +234,22 @@ export default function RightsBrowser({ categories }: { categories: RightsCatego
                     )}
                   </div>
                 )}
-              </section>
+              </Card>
             );
           })}
         </div>
 
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/guided"
-            className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg flex items-center justify-center"
-          >
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button href="/guided" size="lg" icon={<ChecklistIcon size={20} />}>
             {t(locale, "rightsCtaAssess")}
-          </Link>
-          <Link
-            href="/resources"
-            className="w-full h-[52px] bg-white text-hifazat-teal font-semibold rounded-full text-lg border border-hifazat-teal flex items-center justify-center"
-          >
+          </Button>
+          <Button href="/resources" variant="secondary" size="lg" icon={<LifebuoyIcon size={20} />}>
             {t(locale, "aboutSeeResources")}
-          </Link>
+          </Button>
         </div>
 
         <SiteFooter showNav={false} />
       </main>
-    </div>
+    </PageShell>
   );
 }

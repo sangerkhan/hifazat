@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import LanguageToggle from "@/components/LanguageToggle";
 import AssessmentResult, { AssessmentData } from "@/components/AssessmentResult";
+import PageShell from "@/components/ui/PageShell";
+import BackButton from "@/components/ui/BackButton";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { ArrowRightIcon, CheckIcon, PhoneIcon } from "@/components/ui/Icon";
 import { useLanguage } from "@/lib/language-context";
 import { t, tStep } from "@/lib/i18n";
 import {
@@ -21,20 +23,6 @@ import {
   summariseAnswers,
   type Answers,
 } from "@/lib/guided-flow";
-
-function ChevronBack() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="rtl:rotate-180">
-      <path
-        d="M12.5 15L7.5 10L12.5 5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export default function GuidedPage() {
   const { locale } = useLanguage();
@@ -253,44 +241,28 @@ export default function GuidedPage() {
     setPreview({});
   };
 
-  const header = (
-    <header className="flex flex-col items-center gap-4 px-5 py-6">
-      <Link href="/">
-        <Image src="/logo.png" alt="Hifazat" width={140} height={36} className="h-7 w-auto" />
-      </Link>
-      <LanguageToggle />
-    </header>
-  );
-
   // While the assessment is being written, show what is already known. The
   // safety verdict and the opening sentence arrive seconds ahead of the law and
   // the action steps, and for someone in danger those seconds are the ones that
   // matter.
   if (loading && (preview.validation || preview.is_urgent)) {
     return (
-      <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
-        {header}
+      <PageShell width="form">
         <main className="flex-1 px-5 pb-10 flex flex-col gap-5">
           {preview.is_urgent && (
-            <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[24px] p-5 text-center flex flex-col gap-4">
+            <Card tone="danger" elevation="soft" className="border-2 p-5 text-center flex flex-col gap-4">
               <p className="font-heading font-serif text-xl text-hifazat-ink">
                 {t(locale, "resultUrgent")}
               </p>
               <div className="flex flex-col gap-3">
-                <a
-                  href="tel:15"
-                  className="flex items-center justify-center w-full py-3.5 bg-hifazat-red text-white font-semibold rounded-full text-base"
-                >
+                <Button href="tel:15" variant="danger" icon={<PhoneIcon size={18} />}>
                   {t(locale, "resultCallPolice")}
-                </a>
-                <a
-                  href="tel:1099"
-                  className="flex items-center justify-center w-full py-3.5 bg-hifazat-red text-white font-semibold rounded-full text-base"
-                >
+                </Button>
+                <Button href="tel:1099" variant="danger" icon={<PhoneIcon size={18} />}>
                   {t(locale, "resultCallHR")}
-                </a>
+                </Button>
               </div>
-            </div>
+            </Card>
           )}
 
           {preview.validation && (
@@ -307,7 +279,7 @@ export default function GuidedPage() {
             <span className="text-base">{t(locale, "guidedStillWorking")}</span>
           </div>
         </main>
-      </div>
+      </PageShell>
     );
   }
 
@@ -328,10 +300,9 @@ export default function GuidedPage() {
   // them skip the rest of the flow entirely.
   if (showDanger) {
     return (
-      <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
-        {header}
+      <PageShell width="form">
         <main className="flex-1 px-5 pb-10 flex flex-col gap-6">
-          <div className="bg-hifazat-red-light border-2 border-hifazat-red rounded-[24px] p-6 flex flex-col gap-4">
+          <Card tone="danger" elevation="soft" className="border-2 p-6 flex flex-col gap-4">
             <h1 className="font-heading font-serif text-2xl text-hifazat-ink">
               {t(locale, "dangerTitle")}
             </h1>
@@ -339,44 +310,34 @@ export default function GuidedPage() {
               {t(locale, "dangerBody")}
             </p>
             <div className="flex flex-col gap-3">
-              <a
-                href="tel:15"
-                className="flex items-center justify-center w-full h-[52px] bg-hifazat-red text-white font-semibold rounded-full text-lg"
-              >
+              <Button href="tel:15" variant="danger" size="lg" icon={<PhoneIcon size={20} />}>
                 {t(locale, "resultCallPolice")}
-              </a>
-              <a
-                href="tel:1099"
-                className="flex items-center justify-center w-full h-[52px] bg-hifazat-red text-white font-semibold rounded-full text-lg"
-              >
+              </Button>
+              <Button href="tel:1099" variant="danger" size="lg" icon={<PhoneIcon size={20} />}>
                 {t(locale, "resultCallHR")}
-              </a>
+              </Button>
             </div>
-          </div>
+          </Card>
 
           {error && <p className="text-base text-hifazat-red">{error}</p>}
 
           <div className="flex flex-col gap-3">
-            <button
-              onClick={() => submit()}
-              disabled={loading}
-              className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50 flex items-center justify-center gap-2"
-            >
+            <Button onClick={() => submit()} disabled={loading} size="lg">
               {loading ? t(locale, "assessAnalysing") : t(locale, "dangerExpress")}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setShowDanger(false);
                 setCurrentIndex(nextStepIndex(steps, "safety"));
               }}
               disabled={loading}
-              className="w-full py-3 text-hifazat-muted font-medium text-base"
+              variant="ghost"
             >
               {t(locale, "dangerContinue")}
-            </button>
+            </Button>
           </div>
         </main>
-      </div>
+      </PageShell>
     );
   }
 
@@ -393,28 +354,17 @@ export default function GuidedPage() {
   const showActionBar = hasPrimaryAction || hasSkip;
 
   return (
-    <div className="flex flex-col min-h-screen w-full max-w-[600px] mx-auto">
-      {header}
+    <PageShell width="form">
 
       <main className={`flex-1 px-5 ${showActionBar ? "pb-44" : "pb-10"}`}>
         {/* Back */}
-        {currentIndex > 0 ? (
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-4"
-          >
-            <ChevronBack />
-            {t(locale, "goBack")}
-          </button>
-        ) : (
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/5 text-base font-semibold text-hifazat-ink mb-4"
-          >
-            <ChevronBack />
-            {t(locale, "goBack")}
-          </Link>
-        )}
+        <div className="mb-4">
+          {currentIndex > 0 ? (
+            <BackButton onClick={handleBack} />
+          ) : (
+            <BackButton href="/" />
+          )}
+        </div>
 
         {/* Progress */}
         <div className="flex items-center gap-2 mb-2">
@@ -450,13 +400,31 @@ export default function GuidedPage() {
                   key={option.id}
                   onClick={() => handleSelect(option.id)}
                   aria-pressed={step.kind === "multi" ? selected : undefined}
-                  className={`w-full text-start px-4 py-3.5 rounded-[16px] text-base border transition-colors ${
+                  className={`tappable w-full text-start min-h-[56px] px-4 py-3.5 rounded-[16px] text-base border flex items-center gap-3 ${
                     selected
-                      ? "bg-hifazat-teal-light border-hifazat-teal text-hifazat-ink font-medium"
-                      : "bg-white border-hifazat-border text-hifazat-ink"
+                      ? "bg-surface-accent border-hifazat-teal text-hifazat-ink font-medium shadow-[var(--shadow-soft)]"
+                      : "bg-surface-raised border-hifazat-border/60 text-hifazat-ink shadow-[var(--shadow-soft)]"
                   }`}
                 >
-                  {localized(option.label, locale)}
+                  {/* Multi-select needs a visible state; single-select advances
+                      immediately so a checkbox there would only ever flash. */}
+                  {step.kind === "multi" && (
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border-2 ${
+                        selected
+                          ? "bg-hifazat-teal border-hifazat-teal text-white"
+                          : "border-hifazat-border"
+                      }`}
+                    >
+                      {selected && <CheckIcon size={14} />}
+                    </span>
+                  )}
+                  <span className="flex-1">{localized(option.label, locale)}</span>
+                  {step.kind !== "multi" && (
+                    <span className="text-hifazat-muted/50 shrink-0">
+                      <ArrowRightIcon size={18} />
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -485,7 +453,7 @@ export default function GuidedPage() {
               <button
                 key={row.stepId}
                 onClick={() => handleEdit(row.stepId)}
-                className="w-full text-start bg-white border border-hifazat-border rounded-[16px] px-4 py-3 flex items-start justify-between gap-3"
+                className="tappable w-full text-start bg-surface-raised border border-hifazat-border/60 shadow-[var(--shadow-soft)] rounded-[16px] min-h-[56px] px-4 py-3 flex items-start justify-between gap-3"
               >
                 <span className="flex-1">
                   <span className="block text-sm text-hifazat-muted">{row.question}</span>
@@ -524,47 +492,43 @@ export default function GuidedPage() {
           <div className="bg-hifazat-bg pb-6">
             <div className="w-full max-w-[600px] mx-auto px-5 flex flex-col gap-3">
           {step.kind === "review" ? (
-            <button
+            <Button
               onClick={() => submit()}
               disabled={loading}
-              className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
+              size="lg"
+              icon={
+                loading ? (
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  {t(locale, "assessAnalysing")}
-                </>
-              ) : (
-                t(locale, "guidedReviewSubmit")
-              )}
-            </button>
+                ) : undefined
+              }
+            >
+              {loading ? t(locale, "assessAnalysing") : t(locale, "guidedReviewSubmit")}
+            </Button>
           ) : (
             (step.kind === "multi" || step.kind === "text") && (
-              <button
+              <Button
                 onClick={handleNext}
                 disabled={step.kind === "multi" && !answered}
-                className="w-full h-[52px] bg-hifazat-teal text-white font-semibold rounded-full text-lg disabled:opacity-50"
+                size="lg"
+                trailingIcon={<ArrowRightIcon size={20} />}
               >
                 {t(locale, "guidedNext")}
-              </button>
+              </Button>
             )
           )}
 
           {step.optional && step.kind !== "review" && (
-            <button
-              onClick={handleSkip}
-              className="w-full py-2 text-hifazat-muted font-medium text-base"
-            >
+            <Button onClick={handleSkip} variant="ghost">
               {t(locale, "guidedSkip")}
-            </button>
+            </Button>
           )}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
