@@ -21,23 +21,16 @@ export const translations = {
 
     // Landing
     heroHeadline: "You deserve to know your rights!",
-    heroSubtext:
-      "Describe what happened and we'll help you understand what you can do about it under Pakistani Law.",
+    heroSubtext: "Free, private, and in your language.",
     ctaPrimary: "Describe your situation",
     ctaSecondary: "Analyse my situation",
     emergencyLabel: "In Immediate danger?",
     callPolice: "Call 15 (Police)",
     callHumanRights: "Call 1099 (Human rights)",
     ctaWriteTitle: "Write on your own",
-    ctaWriteBody: "Tell us what happened in your own words. English or Urdu.",
     ctaQuizTitle: "Take a quiz",
-    ctaQuizBody: "Answer a few questions and we work it out with you.",
     ctaChooseHeading: "How would you like to start?",
-    homeEmergencyBody: "Both lines are free and answer around the clock.",
     homeExploreHeading: "Or look around first",
-    navRightsBody: "What the law says, where you live",
-    navResourcesBody: "Helplines, legal aid and shelters",
-    navAboutBody: "How this works, and what it cannot do",
 
 
     // Assess
@@ -224,23 +217,16 @@ export const translations = {
 
     // Landing
     heroHeadline: "آپ کو اپنے حقوق جاننے کا حق ہے!",
-    heroSubtext:
-      "بتائیں کیا ہوا اور ہم آپ کو سمجھنے میں مدد کریں گے کہ پاکستانی قانون کے تحت آپ کیا کر سکتے ہیں۔",
+    heroSubtext: "مفت، نجی، اور آپ کی زبان میں۔",
     ctaPrimary: "اپنی صورتحال بیان کریں",
     ctaSecondary: "میری صورتحال کا جائزہ لیں",
     emergencyLabel: "فوری خطرے میں ہیں؟",
     callPolice: "15 پر کال کریں (پولیس)",
     callHumanRights: "1099 پر کال کریں (انسانی حقوق)",
     ctaWriteTitle: "اپنے الفاظ میں لکھیں",
-    ctaWriteBody: "جو ہوا وہ اپنے الفاظ میں بتائیں۔ اردو یا انگریزی میں۔",
     ctaQuizTitle: "چند سوالوں کے جواب دیں",
-    ctaQuizBody: "کچھ سوالوں کے جواب دیں، ہم آپ کے ساتھ مل کر سمجھتے ہیں۔",
     ctaChooseHeading: "آپ کیسے شروع کرنا چاہیں گی؟",
-    homeEmergencyBody: "دونوں نمبر مفت ہیں اور ہر وقت دستیاب ہیں۔",
     homeExploreHeading: "یا پہلے دیکھ لیں",
-    navRightsBody: "آپ کے علاقے میں قانون کیا کہتا ہے",
-    navResourcesBody: "ہیلپ لائنیں، قانونی مدد اور پناہ گاہیں",
-    navAboutBody: "یہ کیسے کام کرتا ہے، اور کیا نہیں کر سکتا",
 
 
     // Assess
