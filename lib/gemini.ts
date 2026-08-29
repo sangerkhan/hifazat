@@ -16,15 +16,22 @@
  * mid-object. Both read as "the model gave us nothing", and both sent the
  * person generic keyword-matched text instead.
  *
- * Zero is the right budget for this call: the corpus is scoped in code before
- * the prompt is built, so the model is choosing among statutes it was handed
- * and writing them up, not reasoning its way to which law exists. It also
- * keeps the answer inside the 8s target. Raise it if answer quality needs it —
- * but raise MAX_OUTPUT_TOKENS with it, because the two share one budget.
+ * The budget is bounded rather than zero. It was briefly zero, set while the
+ * outage that prompted this was wrongly blamed on token starvation; the actual
+ * cause turned out to be an expired API key. Turning the model's reasoning off
+ * was never the point, and this is legal guidance — the model still has to
+ * pick the right indicator and the right section from what it was handed. What
+ * matters is that the two budgets cannot compete: 2048 for thinking against a
+ * cap of 8192 leaves 6144 guaranteed for the answer, which is roughly twice
+ * what the JSON needs.
+ *
+ * Never set a budget without setting the cap, and never let the difference
+ * fall near what the answer costs — that is the failure this pair exists to
+ * make impossible, and lib/__tests__/gemini.test.ts asserts the margin.
  */
-export const THINKING_BUDGET = 0;
+export const THINKING_BUDGET = 2048;
 
-/** Headroom for the full JSON answer, now that thinking is not competing. */
+/** The cap the thinking budget is spent from, not a separate allowance. */
 export const MAX_OUTPUT_TOKENS = 8192;
 
 /** Lower, factual answers: this is legal guidance, not prose. */
