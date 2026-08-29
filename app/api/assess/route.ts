@@ -267,14 +267,21 @@ function getFallbackResponse(
   // domestic case in Punjab, 1043 is staffed by women and can arrange a VAW
   // centre, which 1099 cannot.
   const withPhone = resources.filter((r) => r.phone);
+
+  // A partner organisation that handles this category is a handover, not a
+  // suggestion — someone at the other end is expecting the call. It still
+  // yields to the emergency services when the situation is urgent.
+  const partner = withPhone.find(
+    (r) => r.partner && r.handles.some((h) => categories.includes(h)),
+  );
   const provincial = withPhone.find(
     (r) => r.type !== "emergency" && !r.scope.includes("national"),
   );
   const national = withPhone.find((r) => r.type !== "emergency");
   const emergency = withPhone.find((r) => r.type === "emergency");
   const chosen = isUrgent
-    ? (emergency ?? provincial ?? national)
-    : (provincial ?? national ?? emergency);
+    ? (emergency ?? partner ?? provincial ?? national)
+    : (partner ?? provincial ?? national ?? emergency);
 
   return {
     // The person is about to read generic, keyword-matched text rather than an

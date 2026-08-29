@@ -62,6 +62,13 @@ export interface Resource {
   handles: CaseCategory[];
   /** Lower sorts first. 0 is reserved for life-threatening emergencies. */
   priority: number;
+  /**
+   * An organisation Hifazat works with directly, so a referral to them is a
+   * handover rather than a suggestion. Partners sort ahead of equally relevant
+   * entries — but only for the categories they actually handle, so this cannot
+   * push a cyber helpline to the top of a domestic violence result.
+   */
+  partner?: "drf" | "pncy";
   verification: Confidence;
   /** What specifically needs checking, for the verification checklist. */
   verifyNote?: string;
@@ -318,6 +325,7 @@ export const RESOURCES: Resource[] = [
   // -------------------------------------------------------------------------
   {
     id: "drf_cyber",
+    partner: "drf",
     name: "Digital Rights Foundation — Cyber Harassment Helpline",
     nameUr: "ڈیجیٹل رائٹس فاؤنڈیشن — سائبر ہراسانی ہیلپ لائن",
     type: "cyber",
@@ -863,30 +871,43 @@ export function filterResources(
 
   const needle = search?.trim().toLowerCase();
 
-  return source.filter((r) => {
-    if (!includeUnconfirmed && r.verification !== "confirmed") return false;
+  return source
+    .filter((r) => {
+      if (!includeUnconfirmed && r.verification !== "confirmed") return false;
 
-    if (province && !r.scope.includes("national") && !r.scope.includes(province)) {
-      return false;
-    }
+      if (province && !r.scope.includes("national") && !r.scope.includes(province)) {
+        return false;
+      }
 
-    if (!servesGender(r, gender)) return false;
+      if (!servesGender(r, gender)) return false;
 
-    if (categories?.length && !r.handles.some((h) => categories.includes(h))) {
-      return false;
-    }
+      if (categories?.length && !r.handles.some((h) => categories.includes(h))) {
+        return false;
+      }
 
-    if (types?.length && !types.includes(r.type)) return false;
+      if (types?.length && !types.includes(r.type)) return false;
 
-    if (needle) {
-      const haystack = [r.name, r.nameUr, r.description, r.descriptionUr]
-        .join(" ")
-        .toLowerCase();
-      if (!haystack.includes(needle)) return false;
-    }
+      if (needle) {
+        const haystack = [r.name, r.nameUr, r.description, r.descriptionUr]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(needle)) return false;
+      }
 
-    return true;
-  }).sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+      return true;
+    })
+    .sort((a, b) => {
+      // A partner who handles what was actually asked about goes first. With
+      // no categories in the query there is nothing to be relevant to, so the
+      // ordinary priority ordering stands.
+      const rank = (r: Resource) =>
+        r.partner && categories?.length && r.handles.some((h) => categories.includes(h))
+          ? 0
+          : 1;
+      return (
+        rank(a) - rank(b) || a.priority - b.priority || a.name.localeCompare(b.name)
+      );
+    });
 }
 
 /**

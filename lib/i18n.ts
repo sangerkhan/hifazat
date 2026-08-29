@@ -112,9 +112,8 @@ export const translations = {
       "Nothing matches those filters. Try clearing the search, or choose “All of Pakistan”.",
     resourcesCount: "{count} organisations",
     resourcesNationwide: "Nationwide",
-    resourcesUnverifiedHeading: "Also in your area",
-    resourcesUnverifiedNote:
-      "These organisations work in your area, but we are still confirming their current contact details, so we are not listing a number we cannot stand behind. Reach them through their website, or call 1099 and ask to be connected.",
+    resourcesCall: "Call",
+    resourcesPartner: "Partner",
     resourcesWhatsapp: "WhatsApp",
     resourcesEmail: "Email",
     resourcesWebsite: "Visit website",
@@ -307,9 +306,8 @@ export const translations = {
       "ان فلٹرز سے کچھ نہیں ملا۔ تلاش صاف کریں، یا ”پورا پاکستان“ منتخب کریں۔",
     resourcesCount: "{count} ادارے",
     resourcesNationwide: "ملک بھر میں",
-    resourcesUnverifiedHeading: "آپ کے علاقے میں مزید",
-    resourcesUnverifiedNote:
-      "یہ ادارے آپ کے علاقے میں کام کرتے ہیں، لیکن ہم ان کے موجودہ رابطہ نمبروں کی تصدیق کر رہے ہیں، اس لیے ہم ایسا نمبر نہیں دے رہے جس کی ذمہ داری ہم نہ لے سکیں۔ ان کی ویب سائٹ کے ذریعے رجوع کریں، یا 1099 پر کال کر کے رابطہ کروانے کو کہیں۔",
+    resourcesCall: "کال کریں",
+    resourcesPartner: "شراکت دار",
     resourcesWhatsapp: "واٹس ایپ",
     resourcesEmail: "ای میل",
     resourcesWebsite: "ویب سائٹ دیکھیں",

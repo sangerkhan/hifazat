@@ -6,7 +6,7 @@ import PageShell from "@/components/ui/PageShell";
 import BackButton from "@/components/ui/BackButton";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { GlobeIcon, MailIcon, PhoneIcon } from "@/components/ui/Icon";
+import { ChevronDownIcon, GlobeIcon, MailIcon, PhoneIcon } from "@/components/ui/Icon";
 import { useLanguage } from "@/lib/language-context";
 import { t, tCount, type TranslationKey } from "@/lib/i18n";
 import { filterResources, type Resource, type ResourceType } from "@/lib/resources";
@@ -26,16 +26,21 @@ const TYPE_LABEL_KEYS: Record<ResourceType, TranslationKey> = {
   child: "resourceTypeChild",
 };
 
+/**
+ * Four families rather than eight one-off pairs: who to call in an emergency,
+ * the state, civil society, and the specialist routes. Two of these were raw
+ * Tailwind palette colours that belonged to no system at all.
+ */
 const TYPE_COLORS: Record<ResourceType, string> = {
   emergency: "bg-destructive-subtle text-destructive-strong",
   police: "bg-destructive-subtle text-destructive-strong",
   government: "bg-primary-subtle text-primary-strong",
-  ngo: "bg-warning-subtle text-warning-strong",
-  legal_aid: "bg-purple-100 text-purple-700",
   shelter: "bg-primary-subtle text-primary-strong",
-  cyber: "bg-blue-100 text-blue-700",
+  ngo: "bg-warning-subtle text-warning-strong",
   counselling: "bg-warning-subtle text-warning-strong",
-  child: "bg-purple-100 text-purple-700",
+  legal_aid: "bg-info-subtle text-info-strong",
+  cyber: "bg-info-subtle text-info-strong",
+  child: "bg-info-subtle text-info-strong",
 };
 
 /** Only the types actually present in the directory get a filter chip. */
@@ -89,15 +94,6 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
 
   const verified = useMemo(
     () => filterResources(resources, query),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [resources, province, type, search],
-  );
-
-  const unconfirmed = useMemo(
-    () =>
-      filterResources(resources, { ...query, includeUnconfirmed: true }).filter(
-        (r) => r.verification !== "confirmed",
-      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [resources, province, type, search],
   );
@@ -173,7 +169,7 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
           {tCount(locale, "resourcesCount", verified.length)}
         </p>
 
-        {verified.length === 0 && unconfirmed.length === 0 && (
+        {verified.length === 0 && (
           <p className="text-base text-muted-foreground leading-relaxed">
             {t(locale, "resourcesNoResults")}
           </p>
@@ -185,26 +181,6 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
           ))}
         </div>
 
-        {/* Organisations we have not been able to verify yet are shown, because
-            knowing they exist is useful, but without a tap-to-call link — we
-            will not put a number in front of someone in crisis that we have not
-            stood behind. */}
-        {unconfirmed.length > 0 && (
-          <div className="mt-8">
-            <h2 className="font-heading font-serif text-2xl text-hifazat-ink mb-2">
-              {t(locale, "resourcesUnverifiedHeading")}
-            </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              {t(locale, "resourcesUnverifiedNote")}
-            </p>
-            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start">
-              {unconfirmed.map((r) => (
-                <ResourceCard key={r.id} resource={r} unverified />
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="mt-8">
           <SiteFooter />
         </div>
@@ -213,14 +189,22 @@ export default function ResourcesBrowser({ resources }: { resources: Resource[] 
   );
 }
 
-function ResourceCard({
-  resource,
-  unverified = false,
-}: {
-  resource: Resource;
-  unverified?: boolean;
-}) {
+/**
+ * One organisation.
+ *
+ * Collapsed by default. The directory is 37 entries and a fully expanded card
+ * runs to about 200px, so an unfiltered list was roughly seven screens of
+ * scrolling to find out who is nearest — which is not a thing to ask of
+ * someone in the state most people open this in. Collapsed, the card answers
+ * "is this the one?" (name, what kind of organisation, when it is open, where
+ * it covers) and still lets you call without expanding anything.
+ *
+ * The header is the toggle; the actions sit outside it, because a button
+ * inside a button is not a thing.
+ */
+function ResourceCard({ resource }: { resource: Resource }) {
   const { locale } = useLanguage();
+  const [open, setOpen] = useState(false);
   const isUrdu = locale === "ur";
 
   const name = isUrdu ? resource.nameUr : resource.name;
@@ -230,81 +214,132 @@ function ResourceCard({
   const scopeLabel = resource.scope.includes("national")
     ? t(locale, "resourcesNationwide")
     : resource.scope
-        .map((s) =>
-          s === "national"
+        .map((sc) =>
+          sc === "national"
             ? t(locale, "resourcesNationwide")
             : isUrdu
-              ? PROVINCES[s].shortUr
-              : PROVINCES[s].shortEn,
+              ? PROVINCES[sc].shortUr
+              : PROVINCES[sc].shortEn,
         )
         .join(isUrdu ? "، " : ", ");
 
-  return (
-    <Card
-      elevation={unverified ? "none" : "card"}
-      className={`p-5 flex flex-col gap-3 ${unverified ? "border-dashed bg-transparent" : ""}`}
+  const whatsappHref = resource.whatsapp
+    ? `https://wa.me/${resource.whatsapp.replace(/[^\d]/g, "")}`
+    : null;
+
+  /** Collapsed: reachable in one tap, with the label carried by aria only. */
+  const iconAction = (href: string, label: string, icon: React.ReactNode) => (
+    <Button
+      href={href}
+      variant="surface"
+      size="sm"
+      fullWidth={false}
+      aria-label={label}
+      className="w-11 !px-0"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-base font-semibold text-hifazat-ink leading-tight">{name}</h3>
+      {icon}
+    </Button>
+  );
+
+  return (
+    <Card elevation={open ? "float" : "card"} className="overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="tappable w-full text-start p-5 flex items-start gap-3"
+      >
+        <span className="flex-1 flex flex-col gap-2">
+          <span className="flex items-start gap-2 flex-wrap">
+            <span className="text-base font-semibold text-hifazat-ink leading-tight">
+              {name}
+            </span>
+            <span
+              className={`text-sm font-medium px-2.5 py-0.5 rounded-full shrink-0 ${
+                TYPE_COLORS[resource.type]
+              }`}
+            >
+              {t(locale, TYPE_LABEL_KEYS[resource.type])}
+            </span>
+            {resource.partner && (
+              <span className="text-sm font-medium px-2.5 py-0.5 rounded-full shrink-0 bg-success-subtle text-success-strong">
+                {t(locale, "resourcesPartner")}
+              </span>
+            )}
+          </span>
+          <span className="block text-sm text-muted-foreground">
+            {hours} · {scopeLabel}
+          </span>
+        </span>
         <span
-          className={`text-sm font-medium px-2.5 py-0.5 rounded-full shrink-0 ${
-            TYPE_COLORS[resource.type]
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-hifazat-ink transition-transform ${
+            open ? "rotate-180" : ""
           }`}
         >
-          {t(locale, TYPE_LABEL_KEYS[resource.type])}
+          <ChevronDownIcon size={20} />
         </span>
-      </div>
+      </button>
 
-      <p className="text-sm text-muted-foreground">
-        {hours} · {scopeLabel}
-      </p>
-
-      {/* Contact actions are buttons. An unverified number is deliberately not
-          offered as one — the website is the only route we will stand behind. */}
-      <div className="flex flex-col gap-2">
-        {resource.phone && !unverified && (
-          <Button href={`tel:${resource.phone}`} icon={<PhoneIcon size={18} />}>
-            <span dir="ltr">{resource.phone}</span>
-          </Button>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {resource.whatsapp && !unverified && (
-            <Button
-              href={`https://wa.me/${resource.whatsapp.replace(/[^\d]/g, "")}`}
-              variant="surface"
-              fullWidth={false}
-              icon={<PhoneIcon size={18} />}
-              className="flex-1 min-w-[8rem]"
-            >
-              {t(locale, "resourcesWhatsapp")}
-            </Button>
-          )}
-          {resource.website && (
-            <Button
-              href={resource.website}
-              variant="surface"
-              fullWidth={false}
-              icon={<GlobeIcon size={18} />}
-              className="flex-1 min-w-[8rem]"
-            >
-              {t(locale, "resourcesWebsite")}
-            </Button>
-          )}
-          {resource.email && !unverified && (
-            <Button
-              href={`mailto:${resource.email}`}
-              variant="surface"
-              fullWidth={false}
-              icon={<MailIcon size={18} />}
-              className="flex-1 min-w-[8rem]"
-            >
-              {t(locale, "resourcesEmail")}
-            </Button>
-          )}
+      {!open && (
+        <div className="px-5 pb-5 flex flex-wrap gap-2">
+          {resource.phone &&
+            iconAction(`tel:${resource.phone}`, `${t(locale, "resourcesCall")} ${name}`, <PhoneIcon size={18} />)}
+          {whatsappHref &&
+            iconAction(whatsappHref, `${t(locale, "resourcesWhatsapp")} — ${name}`, <PhoneIcon size={18} />)}
+          {resource.website &&
+            iconAction(resource.website, `${t(locale, "resourcesWebsite")} — ${name}`, <GlobeIcon size={18} />)}
+          {resource.email &&
+            iconAction(`mailto:${resource.email}`, `${t(locale, "resourcesEmail")} — ${name}`, <MailIcon size={18} />)}
         </div>
-      </div>
+      )}
 
-      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+      {open && (
+        <div className="px-5 pb-5 flex flex-col gap-4 border-t border-border pt-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+
+          <div className="flex flex-col gap-2">
+            {resource.phone && (
+              <Button href={`tel:${resource.phone}`} icon={<PhoneIcon size={18} />}>
+                <span dir="ltr">{resource.phone}</span>
+              </Button>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {whatsappHref && (
+                <Button
+                  href={whatsappHref}
+                  variant="surface"
+                  fullWidth={false}
+                  icon={<PhoneIcon size={18} />}
+                  className="flex-1 min-w-[8rem]"
+                >
+                  {t(locale, "resourcesWhatsapp")}
+                </Button>
+              )}
+              {resource.website && (
+                <Button
+                  href={resource.website}
+                  variant="surface"
+                  fullWidth={false}
+                  icon={<GlobeIcon size={18} />}
+                  className="flex-1 min-w-[8rem]"
+                >
+                  {t(locale, "resourcesWebsite")}
+                </Button>
+              )}
+              {resource.email && (
+                <Button
+                  href={`mailto:${resource.email}`}
+                  variant="surface"
+                  fullWidth={false}
+                  icon={<MailIcon size={18} />}
+                  className="flex-1 min-w-[8rem]"
+                >
+                  {t(locale, "resourcesEmail")}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { computeCacheKey, isCacheable } from "../db/assessment-cache";
 import { buildSystemPrompt } from "../system-prompt";
 import { isDatabaseConfigured } from "../db/client";
+import { getResources } from "../resources";
 import type { Answers } from "../guided-flow";
 
 const ref = await getReferenceData();
@@ -167,5 +168,28 @@ describe("cacheability", () => {
 
   it("does not cache an almost-empty flow", () => {
     expect(isCacheable({ gender: ["gender_woman"] }, "")).toBe(false);
+  });
+});
+
+describe("partner resources", () => {
+  it("puts Digital Rights Foundation first for a cyber case", () => {
+    const results = getResources({ categories: ["cyber"] });
+    expect(results.length).toBeGreaterThan(1);
+    expect(results[0].id).toBe("drf_cyber");
+  });
+
+  it("does not let a cyber partner jump a domestic violence result", () => {
+    // The guard that matters: partner status is scoped to the categories the
+    // organisation actually handles, so it cannot outrank a shelter helpline
+    // for someone who is being beaten at home.
+    const results = getResources({ categories: ["domestic"] });
+    expect(results[0]?.id).not.toBe("drf_cyber");
+  });
+
+  it("leaves the ordinary priority order alone when no category is given", () => {
+    // Browsing the directory is not a case, so there is nothing for a partner
+    // to be relevant to — emergency numbers still come first.
+    const results = getResources({});
+    expect(results[0].priority).toBe(0);
   });
 });
