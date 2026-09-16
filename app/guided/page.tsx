@@ -40,7 +40,12 @@ export default function GuidedPage() {
 
   const steps = useMemo(() => getVisibleSteps(answers), [answers]);
   const totalSteps = steps.length;
-  const step = steps[Math.min(currentIndex, totalSteps - 1)];
+  // Clamped once and used everywhere below. The progress bar and the "step N of
+  // M" line used to read the raw index, so if an answer change shortened the
+  // flow underneath them they could say "step 9 of 8" while the page showed the
+  // last question.
+  const index = Math.min(Math.max(currentIndex, 0), Math.max(totalSteps - 1, 0));
+  const step = steps[index];
   const options = useMemo(
     () => (step ? getStepOptions(step, answers) : []),
     [step, answers],
@@ -55,7 +60,7 @@ export default function GuidedPage() {
   /**
    * Applies an answer change and repositions. Answers are pruned first, so a
    * change that invalidates later ones (switching the perpetrator from a
-   * husband to a colleague) drops the marital status and khula goal rather than
+   * husband to a colleague) drops the khula goal and the dowry act rather than
    * carrying them into the narrative. Position is then resolved by step ID, not
    * by index, because the list length may have changed underneath us.
    */
@@ -67,7 +72,7 @@ export default function GuidedPage() {
     setCurrentIndex(
       advanceFrom
         ? nextStepIndex(nextSteps, advanceFrom)
-        : reconcileIndex(nextSteps, step?.id, currentIndex),
+        : reconcileIndex(nextSteps, step?.id, index),
     );
   };
 
@@ -113,8 +118,8 @@ export default function GuidedPage() {
   };
 
   const handleEdit = (stepId: string) => {
-    const index = stepIndexById(steps, stepId);
-    if (index !== -1) setCurrentIndex(index);
+    const target = stepIndexById(steps, stepId);
+    if (target !== -1) setCurrentIndex(target);
   };
 
   const handleSkip = () => {
@@ -359,7 +364,7 @@ export default function GuidedPage() {
       <main className={`flex-1 px-5 ${showActionBar ? "dock-clear-lg" : "pb-10"}`}>
         {/* Back */}
         <div className="mb-4">
-          {currentIndex > 0 ? (
+          {index > 0 ? (
             <BackButton onClick={handleBack} />
           ) : (
             <BackButton href="/" />
@@ -372,13 +377,13 @@ export default function GuidedPage() {
             <div
               key={s.id}
               className={`h-1.5 flex-1 rounded-full ${
-                i <= currentIndex ? "bg-primary" : "bg-border"
+                i <= index ? "bg-primary" : "bg-border"
               }`}
             />
           ))}
         </div>
         <p className="text-sm text-muted-foreground mb-6">
-          {tStep(locale, currentIndex + 1, totalSteps)}
+          {tStep(locale, index + 1, totalSteps)}
         </p>
 
         <h1 className="font-heading text-2xl font-serif text-hifazat-ink mb-2">

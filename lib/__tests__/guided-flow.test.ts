@@ -34,57 +34,43 @@ function visibleIds(answers: Answers): string[] {
 
 describe("conditional branching", () => {
   it("offers khula while the marriage subsists", () => {
-    const answers: Answers = {
-      who: ["rel_spouse"],
-      maritalStatus: ["marital_married"],
-      children: ["children_no"],
-    };
-    expect(optionsFor("intent", answers)).toContain("intent_khula");
+    expect(optionsFor("intent", { who: ["rel_spouse"] })).toContain("intent_khula");
   });
 
+  // Separation does not end a marriage, and khula is the remedy for exactly
+  // this person. The relationship option says "including if we are separated"
+  // so that they recognise themselves in it, now that there is no longer a
+  // marital-status question of its own.
   it("still offers khula when separated but not divorced", () => {
-    const answers: Answers = {
-      who: ["rel_spouse"],
-      maritalStatus: ["marital_separated"],
-    };
-    expect(optionsFor("intent", answers)).toContain("intent_khula");
+    const spouseOption = getStepOptions(
+      FLOW_STEPS.find((s) => s.id === "who")!,
+      {},
+    ).find((o) => o.id === "rel_spouse")!;
+
+    expect(spouseOption.label.en.toLowerCase()).toContain("separated");
+    expect(optionsFor("intent", { who: ["rel_spouse"] })).toContain("intent_khula");
   });
 
   // The headline bug: the old flow bucketed "Ex-partner" with spouses and then
   // offered khula and "stay but need protection" to someone already divorced.
   it("does not offer khula to a divorced person", () => {
-    const answers: Answers = {
-      who: ["rel_ex_spouse"],
-      maritalStatus: ["marital_divorced"],
-    };
-    const intents = optionsFor("intent", answers);
+    const intents = optionsFor("intent", { who: ["rel_ex_spouse"] });
     expect(intents).not.toContain("intent_khula");
     expect(intents).not.toContain("intent_stay_safely");
     expect(intents).toContain("intent_stop_contact");
   });
 
   it("does not offer khula to someone who was never married", () => {
-    const answers: Answers = {
-      who: ["rel_ex_partner"],
-      maritalStatus: ["marital_never_married"],
-    };
-    expect(optionsFor("intent", answers)).not.toContain("intent_khula");
+    expect(optionsFor("intent", { who: ["rel_ex_partner"] })).not.toContain("intent_khula");
+    expect(optionsFor("intent", { who: ["rel_partner"] })).not.toContain("intent_khula");
   });
 
-  it("asks about marriage status only for a partner or spouse", () => {
-    expect(visibleIds({ who: ["rel_spouse"] })).toContain("maritalStatus");
-    expect(visibleIds({ who: ["rel_employer"] })).not.toContain("maritalStatus");
-    expect(visibleIds({ who: ["rel_parent"] })).not.toContain("maritalStatus");
-  });
-
-  it("asks child ages only when a custody-related goal was chosen", () => {
-    const base: Answers = {
-      who: ["rel_spouse"],
-      maritalStatus: ["marital_married"],
-      children: ["children_yes"],
-    };
-    expect(visibleIds(base)).not.toContain("childAges");
-    expect(visibleIds({ ...base, intent: ["intent_custody"] })).toContain("childAges");
+  // The child questions are gone; the goals they gated are offered directly,
+  // and the answer is read back off what was chosen.
+  it("offers the child remedies without first asking whether there are children", () => {
+    expect(visibleIds({ who: ["rel_spouse"] })).not.toContain("children");
+    expect(visibleIds({ who: ["rel_spouse"] })).not.toContain("childAges");
+    expect(optionsFor("intent", { who: ["rel_spouse"] })).toContain("intent_custody");
   });
 
   it("surfaces workplace-specific acts only at work", () => {
@@ -101,9 +87,45 @@ describe("conditional branching", () => {
     expect(optionsFor("whatHappened", { who: ["rel_stranger"] })).not.toContain("act_dowry");
   });
 
+  // Blackmail with photographs is most often a husband or an ex, not an
+  // anonymous account. It sat behind "someone online I have never met" until
+  // the "where did this happen" question was removed, which made it
+  // unreachable for the people who report it most.
+  it("offers blackmail and threatening messages whoever the perpetrator is", () => {
+    for (const who of ["rel_spouse", "rel_employer", "rel_stranger", "rel_online_unknown"]) {
+      const acts = optionsFor("whatHappened", { who: [who] });
+      expect(acts).toContain("act_blackmail");
+      expect(acts).toContain("act_online_threats");
+    }
+  });
+
+  it("offers a takedown when private material is involved, not only online cases", () => {
+    const answers: Answers = { who: ["rel_spouse"], whatHappened: ["act_images"] };
+    expect(optionsFor("intent", answers)).toContain("intent_remove_content");
+    // Without a cyber act there is nothing to take down, so it is not offered.
+    expect(optionsFor("intent", { who: ["rel_spouse"] })).not.toContain(
+      "intent_remove_content",
+    );
+  });
+
   it("keeps 'something else' last however many contextual acts are added", () => {
-    const acts = optionsFor("whatHappened", { who: ["rel_spouse"], where: ["where_online"] });
+    const acts = optionsFor("whatHappened", { who: ["rel_online_unknown"] });
     expect(acts[acts.length - 1]).toBe("act_other");
+  });
+
+  // The whole point of the rework: the flow is short enough that someone in
+  // distress reaches an answer.
+  it("is seven questions and a review, whatever the answers", () => {
+    const paths: Answers[] = [
+      {},
+      { who: ["rel_spouse"], intent: ["intent_custody"] },
+      { who: ["rel_employer"] },
+      { who: ["rel_online_unknown"], whatHappened: ["act_blackmail"] },
+    ];
+
+    for (const answers of paths) {
+      expect(getVisibleSteps(answers)).toHaveLength(8);
+    }
   });
 });
 
@@ -114,44 +136,50 @@ describe("answer pruning", () => {
   it("drops spousal answers when the perpetrator changes to a colleague", () => {
     const before: Answers = {
       who: ["rel_spouse"],
-      maritalStatus: ["marital_married"],
-      children: ["children_yes"],
       intent: ["intent_khula"],
     };
     const after = pruneAnswers({ ...before, who: ["rel_employer"] });
 
-    expect(after.maritalStatus).toBeUndefined();
-    expect(after.children).toBeUndefined();
     expect(after.intent).toBeUndefined();
   });
 
-  it("drops a khula goal when the marriage status changes to divorced", () => {
+  it("drops a khula goal when the relationship changes to a former spouse", () => {
     const before: Answers = {
       who: ["rel_spouse"],
-      maritalStatus: ["marital_married"],
       intent: ["intent_khula", "intent_protection"],
     };
-    const after = pruneAnswers({ ...before, maritalStatus: ["marital_divorced"] });
+    const after = pruneAnswers({ ...before, who: ["rel_ex_spouse"] });
 
     expect(after.intent).not.toContain("intent_khula");
     expect(after.intent).toContain("intent_protection");
   });
 
-  it("cascades through more than one level of dependency", () => {
+  // Goals now depend on the acts as well as the relationship, so a takedown
+  // goal must not outlive the act that made it available.
+  it("drops a takedown goal when the cyber act is deselected", () => {
     const before: Answers = {
       who: ["rel_spouse"],
-      maritalStatus: ["marital_married"],
-      children: ["children_yes"],
-      intent: ["intent_custody"],
-      childAges: ["kids_2_6"],
+      whatHappened: ["act_images"],
+      intent: ["intent_remove_content", "intent_protection"],
     };
-    // Removing the relationship should remove marital status, children, the
-    // goal, and the child ages that depended on the goal.
+    const after = pruneAnswers({ ...before, whatHappened: ["act_hit"] });
+
+    expect(after.intent).not.toContain("intent_remove_content");
+    expect(after.intent).toContain("intent_protection");
+  });
+
+  it("cascades through more than one level of dependency", () => {
+    const before: Answers = {
+      who: ["rel_employer"],
+      whatHappened: ["act_quid_pro_quo"],
+      intent: ["intent_ombudsperson"],
+    };
+    // Changing the relationship removes the workplace-only act, and with it
+    // the workplace-only goal.
     const after = pruneAnswers({ ...before, who: ["rel_stranger"] });
 
-    expect(after.childAges).toBeUndefined();
-    expect(after.children).toBeUndefined();
-    expect(after.maritalStatus).toBeUndefined();
+    expect(after.whatHappened).toBeUndefined();
+    expect(after.intent).toBeUndefined();
   });
 
   it("leaves a valid answer set untouched", () => {
@@ -159,41 +187,33 @@ describe("answer pruning", () => {
       gender: ["gender_woman"],
       province: ["province_punjab"],
       who: ["rel_spouse"],
-      maritalStatus: ["marital_married"],
+      whatHappened: ["act_hit"],
+      intent: ["intent_khula"],
     };
     expect(pruneAnswers(answers)).toEqual(answers);
   });
 });
 
 describe("navigation", () => {
-  it("lands on a newly unlocked conditional step", () => {
-    const answers: Answers = { who: ["rel_spouse"] };
-    const steps = getVisibleSteps(answers);
-    const next = nextStepIndex(steps, "who");
-    expect(steps[next].id).toBe("maritalStatus");
+  it("runs who, then what happened, then the goals", () => {
+    // The goal list is built from both the relationship and the acts, so both
+    // have to be answered before it is shown.
+    const steps = getVisibleSteps({ who: ["rel_spouse"] });
+    expect(steps[nextStepIndex(steps, "who")].id).toBe("whatHappened");
+    expect(steps[nextStepIndex(steps, "whatHappened")].id).toBe("intent");
   });
 
-  it("skips a step that is not applicable", () => {
-    const answers: Answers = { who: ["rel_stranger"] };
-    const steps = getVisibleSteps(answers);
-    const next = nextStepIndex(steps, "who");
-    expect(steps[next].id).toBe("intent");
-  });
-
-  // Previously the page tracked a bare index, so editing an earlier answer that
-  // removed later questions left the index pointing past the end of the list.
   it("clamps into range when the current step disappears", () => {
     const steps = getVisibleSteps({ who: ["rel_stranger"] });
     expect(reconcileIndex(steps, "maritalStatus", 99)).toBe(steps.length - 1);
     expect(reconcileIndex(steps, "maritalStatus", 3)).toBe(3);
   });
 
-  it("holds position by step ID when the list length changes", () => {
-    const shortFlow = getVisibleSteps({ who: ["rel_stranger"] });
-    const longFlow = getVisibleSteps({ who: ["rel_spouse"], children: ["children_yes"] });
-    const index = reconcileIndex(longFlow, "whatHappened", 0);
-    expect(longFlow[index].id).toBe("whatHappened");
-    expect(index).not.toBe(stepIndexById(shortFlow, "whatHappened"));
+  it("holds position by step ID rather than by index", () => {
+    const steps = getVisibleSteps({ who: ["rel_spouse"] });
+    const index = reconcileIndex(steps, "whatHappened", 0);
+    expect(steps[index].id).toBe("whatHappened");
+    expect(index).toBe(stepIndexById(steps, "whatHappened"));
   });
 
   it("never advances past the last step", () => {
@@ -225,15 +245,9 @@ describe("narrative", () => {
     safety: ["safety_afraid"],
     gender: ["gender_woman"],
     province: ["province_sindh"],
-    where: ["where_home"],
     who: ["rel_spouse"],
-    maritalStatus: ["marital_married"],
-    children: ["children_yes"],
-    intent: ["intent_khula", "intent_custody"],
-    childAges: ["kids_2_6"],
     whatHappened: ["act_hit", "act_dowry"],
-    recency: ["when_today"],
-    evidence: ["ev_nikahnama"],
+    intent: ["intent_khula", "intent_custody"],
   };
 
   it("is composed in English whatever the interface language", () => {
@@ -249,9 +263,13 @@ describe("narrative", () => {
     expect(buildNarrative(answers, "He took my phone.")).toContain("He took my phone.");
   });
 
-  it("reports the absence of children explicitly", () => {
-    const narrative = buildNarrative({ who: ["rel_spouse"], children: ["children_no"] }, "");
-    expect(narrative).toContain("no children");
+  it("tells the model there are children when a child remedy was chosen", () => {
+    expect(buildNarrative({ who: ["rel_spouse"], intent: ["intent_custody"] }, "")).toContain(
+      "children involved",
+    );
+    expect(buildNarrative({ who: ["rel_spouse"], intent: ["intent_khula"] }, "")).not.toContain(
+      "children involved",
+    );
   });
 
   it("produces nothing from an empty flow rather than throwing", () => {

@@ -24,6 +24,34 @@ lawyers, hosting, co-branding).
 - [x] Gemini 2.5 Flash, falling back to Flash-Lite
 - [x] Offline keyword fallback when the model is unreachable
 - [x] Structured JSON output with validation and retry across models
+- [x] **Resilience.** The recurring "the AI has stopped working and everyone is
+      getting generic answers" failure, addressed at each of the points it has
+      actually come from rather than one more time at the symptom:
+      - The key is trimmed of whitespace and quotes, and read per request.
+        A pasted `AIza...\n` is a 400 and was indistinguishable from an outage.
+      - The key travels in `x-goog-api-key`, not the query string.
+      - 429 and 5xx are retried with backoff before the next model is tried.
+        One busy minute used to take the whole app down to keyword matching.
+      - The model list comes from `GEMINI_MODELS`, so a retired model name is a
+        config change.
+      - `responseSchema` constrains the output to the shape the screen renders,
+        so a missing field can no longer cost a person their assessment. Its
+        `propertyOrdering` is also what guarantees the streamed safety verdict
+        arrives first.
+      - A stream that fails finishes on the server instead of asking the browser
+        to start again.
+      - The fallback names its cause (`no_api_key` / `rejected` / `quota` /
+        `unreachable` / `empty_response` / `invalid_output`) in the response and
+        in one greppable log line.
+      - `/admin` opens with a plain statement of whether assessments are live,
+        and what to do if they are not.
+- [x] **Deterministic result ordering** (`lib/assessment-shape.ts`). The screen
+      numbers the action steps and fills only the first resource's call button;
+      nothing used to make either true, so the same situation could come back
+      with the court filing as step 1. Actions now run immediate → short term →
+      longer term, resources lead with whatever the primary button dials and
+      then follow the directory's ranking, duplicates are dropped, and every
+      path — live, streamed, cached and offline — goes through the same rules.
 
 ### Jurisdiction and questionnaire correctness
 - [x] Province registry with per-province devolved legislation
@@ -37,8 +65,21 @@ lawyers, hosting, co-branding).
       replacing branching that matched on localised display strings
 - [x] Relationship- and marital-status-aware goals — khula is no longer offered
       to people who are divorced or were never married
-- [x] New questions: safety check, marital status, child ages, recency,
-      evidence held, prior reporting, and a review-and-edit step
+- [x] Safety check first, and a review-and-edit step last
+- [x] **Cut from sixteen screens to eight.** The questionnaire asked marital
+      status, children, child ages, where it happened, recency, frequency,
+      evidence held and prior reporting — eight screens of work, most of it
+      narrative colour that did not change which law applied or which helpline
+      answered. What the remaining screens could not afford to lose is derived
+      instead: whether the marriage subsists comes from the relationship option,
+      which now says "including if we are separated" and "we are divorced" in
+      so many words; whether there are children comes from whether a custody or
+      child-maintenance goal was chosen. Blackmail and threatening messages moved
+      into the main list of acts, where a spouse case can reach them, and a
+      takedown goal is offered whenever private material is involved rather than
+      only when the perpetrator is a stranger online. The flow is now: safety,
+      gender, province, who, what happened, what you want, anything to add,
+      review.
 - [x] Danger interstitial that surfaces emergency numbers immediately and lets
       someone skip the questionnaire entirely
 - [x] Answer pruning, so changing an earlier answer cannot carry a stale goal
