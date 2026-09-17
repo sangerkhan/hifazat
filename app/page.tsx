@@ -116,18 +116,26 @@ export default function Home() {
           {/* The three ways in, and nothing competing with them. Legal help is
               here rather than only after an assessment: someone who already
               knows they need a lawyer should not have to describe what happened
-              to an app first. */}
+              to an app first.
+
+              The questionnaire carries the fill. It is the route that produces
+              a real answer: it establishes the province, the relationship and
+              the acts, so the law and the helplines are narrowed to the person
+              before the model is asked anything. Free text can be narrowed to
+              nothing, and gets a broader answer as a result. It led here only
+              because it used to be the shorter of the two — which stopped being
+              true at seven questions. */}
           <div className="flex flex-col gap-3 mt-9 lg:mt-0">
             <EntryCard
-              href="/assess"
-              emphasis
-              icon={<PencilIcon size={24} />}
-              title={t(locale, "ctaWriteTitle")}
-            />
-            <EntryCard
               href="/guided"
+              emphasis
               icon={<ChecklistIcon size={26} />}
               title={t(locale, "ctaQuizTitle")}
+            />
+            <EntryCard
+              href="/assess"
+              icon={<PencilIcon size={24} />}
+              title={t(locale, "ctaWriteTitle")}
             />
             <EntryCard
               href="/legal-aid"

@@ -1,7 +1,57 @@
 import Link from "next/link";
 import { getServiceClient, isDatabaseConfigured } from "@/lib/db/client";
+import { HEALTH_REMEDY, checkModelHealth } from "@/lib/model-health";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Whether the assessment is actually being written by the model.
+ *
+ * This is the first thing on the page because it is the one failure the app
+ * hides by design. When Gemini is unreachable every visitor still gets an
+ * answer — generic text matched on a few keywords — so nothing looks broken
+ * from outside, and the last two times it happened it ran for days before
+ * anyone noticed. It costs one eight-token request per page load to stop that
+ * being possible again.
+ */
+async function ModelStatus() {
+  const health = await checkModelHealth(8000);
+
+  if (health.ok) {
+    return (
+      <div className="bg-primary-subtle border border-primary/40 rounded-[24px] px-5 py-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-base font-semibold text-hifazat-ink">
+          Assessments are live
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {health.model} answered in {health.latencyMs} ms.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-destructive-subtle border border-destructive rounded-[24px] p-5 flex flex-col gap-2">
+      <h2 className="font-heading font-serif text-2xl text-hifazat-ink">
+        Every assessment is being keyword-matched
+      </h2>
+      <p className="text-base text-hifazat-ink/80 leading-relaxed">
+        {health.model} did not answer, so nobody using the app right now is
+        getting an assessment of what they wrote — they are getting the offline
+        fallback, with a notice on screen saying so.
+      </p>
+      <p className="text-base text-hifazat-ink/80 leading-relaxed">
+        {health.reason ? HEALTH_REMEDY[health.reason] : ""}
+      </p>
+      {health.detail && (
+        <p className="text-sm text-muted-foreground font-mono break-words">
+          {health.reason}
+          {health.status ? ` ${health.status}` : ""}: {health.detail}
+        </p>
+      )}
+    </div>
+  );
+}
 
 interface Counts {
   unverifiedResources: number;
@@ -63,7 +113,9 @@ function Card({
 export default async function AdminOverview() {
   if (!isDatabaseConfigured()) {
     return (
-      <div className="bg-warning-subtle border border-warning/45 rounded-[24px] p-6 flex flex-col gap-2">
+      <div className="flex flex-col gap-6">
+        <ModelStatus />
+        <div className="bg-warning-subtle border border-warning/45 rounded-[24px] p-6 flex flex-col gap-2">
         <h2 className="font-heading font-serif text-2xl text-hifazat-ink">
           No database connected
         </h2>
@@ -73,7 +125,8 @@ export default async function AdminOverview() {
           runs on the datasets bundled in the repository, which can only be changed
           by a code change and a deploy.
         </p>
-        <p className="text-sm text-muted-foreground">See docs/BACKEND.md for setup.</p>
+          <p className="text-sm text-muted-foreground">See docs/BACKEND.md for setup.</p>
+        </div>
       </div>
     );
   }
@@ -82,6 +135,8 @@ export default async function AdminOverview() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ModelStatus />
+
       <div>
         <h1 className="font-heading font-serif text-[32px] text-hifazat-ink">Overview</h1>
         <p className="text-base text-muted-foreground mt-1">

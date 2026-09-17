@@ -1,12 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { allowRequest, clientBucket } from "@/lib/rate-limit";
 import {
+  MAX_ATTEMPTS_PER_MODEL,
   MAX_OUTPUT_TOKENS,
   THINKING_BUDGET,
+  backoffMs,
   describeEmptyResponse,
   generationConfig,
+  getApiKey,
+  getModels,
+  isSchemaRejection,
   isThinkingConfigRejection,
+  isTransientStatus,
+  reasonForStatus,
+  type ConfigOptions,
+  type DegradedReason,
 } from "@/lib/gemini";
+import { normaliseAssessment } from "@/lib/assessment-shape";
+import { checkModelHealth } from "@/lib/model-health";
 import { buildSystemPrompt, type PromptContext } from "@/lib/system-prompt";
 import {
   getReferenceData,
@@ -35,9 +46,24 @@ import {
   type ProvinceId,
 } from "@/lib/provinces";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
+/** Long enough for a thinking model on a cold path, short enough that nobody
+    watches a spinner past the point they would have given up. */
+const REQUEST_TIMEOUT_MS = 45_000;
+
+/**
+ * The key travels in a header, never in the query string.
+ *
+ * A key in a URL is a key in access logs, in proxy logs, in error reports and
+ * in anything that records a request line — and it is the part of the request
+ * most likely to be mangled by encoding. The header is what Google documents.
+ */
+function geminiHeaders(apiKey: string): HeadersInit {
+  return { "Content-Type": "application/json", "x-goog-api-key": apiKey };
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
 const VALID_GENDERS: Gender[] = ["woman", "man", "transgender", "unspecified"];
@@ -181,20 +207,59 @@ function sanitiseAnswers(raw: unknown): Answers | undefined {
 // ---------------------------------------------------------------------------
 
 /**
- * Used when every model attempt fails. The classification text is still
- * keyword-driven, but the resources are now drawn from the directory using the
- * same province and gender scoping as the live path — the previous hardcoded
- * fallback told everyone to call the Punjab women's helpline, including people
- * in Sindh and Balochistan where 1043 does not answer.
+ * Used when every model attempt, on every model, has failed.
+ *
+ * The wording is canned, but what it is about and who it points at are not.
+ * The classification comes from the categories the guided flow established,
+ * falling back to keywords only for free text; and the resources are drawn from
+ * the directory using the same province and gender scoping as the live path.
+ * The original hardcoded fallback told everyone to call the Punjab women's
+ * helpline, including people in Sindh and Balochistan where 1043 does not
+ * answer.
+ *
+ * The result still says plainly, on screen, that it is not an assessment of
+ * what the person wrote.
  */
 function getFallbackResponse(
   input: string,
   ctx: PromptContext,
   availableResources: Resource[],
+  reason: DegradedReason = "unreachable",
 ) {
   const text = input.toLowerCase();
 
-  const match = (...needles: string[]) => needles.some((n) => text.includes(n));
+  /**
+   * Which of the four canned classifications to use.
+   *
+   * Keyword matching is the last resort, not the first. The guided flow has
+   * already established what happened — from options the person tapped, not
+   * from words we went looking for in a sentence — so when those categories are
+   * present they decide, and the keywords only run for free text where there is
+   * nothing else to go on.
+   *
+   * This matters because the keyword order was wrong for the commonest case:
+   * "he beat me and is threatening to share my photos" matched "photos" before
+   * it matched "beat", so a woman being assaulted at home was told her case was
+   * cyber harassment. The categories say domestic and physical, in that order.
+   */
+  const known = ctx.categories ?? [];
+  const hasCategory = (...wanted: CaseCategory[]) =>
+    wanted.some((c) => known.includes(c));
+
+  const match = (...needles: string[]) =>
+    known.length ? false : needles.some((n) => text.includes(n));
+
+  const looksLike = (
+    kind: "danger" | "cyber" | "physical",
+    ...needles: string[]
+  ): boolean => {
+    if (known.length) {
+      if (kind === "danger") return Boolean(ctx.urgent) || hasCategory("harmful_practice");
+      if (kind === "physical") return hasCategory("physical");
+      return hasCategory("cyber");
+    }
+    return match(...needles);
+  };
 
   let categories: CaseCategory[];
   let severity: "concerning" | "serious" | "critical";
@@ -203,7 +268,11 @@ function getFallbackResponse(
   let categoryName: string;
   let indicator: { id: string; name: string; explanation: string };
 
-  if (match("threat", "kill", "honour", "honor", "danger", "murder")) {
+  // "threat" on its own used to be in this list, which meant free text saying
+  // "he is threatening to share my photos" was classified as an honour crime
+  // and answered with the emergency line instead of the cyber complaint route.
+  // A threat to life says so; the words here are the ones that mean it.
+  if (looksLike("danger", "kill", "honour", "honor", "murder", "acid", "in danger", "death")) {
     categories = ["physical", "harmful_practice"];
     severity = "critical";
     isUrgent = true;
@@ -216,19 +285,7 @@ function getFallbackResponse(
       explanation:
         "Threats to harm or kill someone in the name of honour are a criminal offence. The 2016 amendment closed the loophole that previously allowed families to forgive the perpetrator, so these threats must be taken seriously.",
     };
-  } else if (match("online", "photo", "blackmail", "cyber", "message", "share", "picture")) {
-    categories = ["cyber", "sexual"];
-    severity = "serious";
-    categoryName = "Cyber Violence";
-    validation =
-      "What you have described is recognised as cyber violence under Pakistani law. Sharing or threatening to share private images, harassing someone online, and digital blackmail are all criminal offences. You have done nothing wrong.";
-    indicator = {
-      id: "cyber_01",
-      name: "Non-consensual sharing of intimate images, or threats to share them",
-      explanation:
-        "Sharing or threatening to share private images without consent is a crime under PECA 2016. The person doing this is committing the offence, not you.",
-    };
-  } else if (match("hit", "slap", "beat", "hurt", "physical", "punch", "kick")) {
+  } else if (looksLike("physical", "hit", "slap", "beat", "hurt", "physical", "punch", "kick")) {
     categories = ["physical", "domestic"];
     severity = "serious";
     categoryName = "Physical Violence";
@@ -239,6 +296,18 @@ function getFallbackResponse(
       name: "Hitting, slapping, kicking, punching or beating",
       explanation:
         "Being hit by a spouse, a family member or anyone else is a criminal offence in Pakistan, and the law treats it as violence rather than as a domestic disagreement.",
+    };
+  } else if (looksLike("cyber", "online", "photo", "blackmail", "cyber", "message", "share", "picture")) {
+    categories = ["cyber", "sexual"];
+    severity = "serious";
+    categoryName = "Cyber Violence";
+    validation =
+      "What you have described is recognised as cyber violence under Pakistani law. Sharing or threatening to share private images, harassing someone online, and digital blackmail are all criminal offences. You have done nothing wrong.";
+    indicator = {
+      id: "cyber_01",
+      name: "Non-consensual sharing of intimate images, or threats to share them",
+      explanation:
+        "Sharing or threatening to share private images without consent is a crime under PECA 2016. The person doing this is committing the offence, not you.",
     };
   } else {
     categories = ["domestic", "other"];
@@ -274,9 +343,13 @@ function getFallbackResponse(
   const partner = withPhone.find(
     (r) => r.partner && r.handles.some((h) => categories.includes(h)),
   );
-  const provincial = withPhone.find(
-    (r) => r.type !== "emergency" && !r.scope.includes("national"),
-  );
+  // Only when we know where they are. With no province the directory is
+  // unfiltered, so the highest-priority provincial line wins by accident — and
+  // telling a woman in Quetta to call 1043 is telling her to call a number that
+  // does not answer for her. The national lines do.
+  const provincial = ctx.province
+    ? withPhone.find((r) => r.type !== "emergency" && !r.scope.includes("national"))
+    : undefined;
   const national = withPhone.find((r) => r.type !== "emergency");
   const emergency = withPhone.find((r) => r.type === "emergency");
   const chosen = isUrgent
@@ -289,6 +362,11 @@ function getFallbackResponse(
     // difference matters enough to say out loud, so the result screen shows a
     // notice instead of presenting this as the real thing.
     degraded: true as const,
+    // Which of the several very different problems this was. The screen shows
+    // the person a plain sentence either way; this is what tells whoever runs
+    // the app whether to rotate a key, raise a quota or wait out an outage,
+    // without having to reach for the logs of a deploy they may not own.
+    degraded_reason: reason,
     is_urgent: isUrgent,
     validation,
     classifications: [
@@ -356,6 +434,143 @@ function buttonLabel(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Generating — the whole-response path
+// ---------------------------------------------------------------------------
+
+export type GenerationResult =
+  | { ok: true; assessment: Record<string, unknown>; model: string }
+  | { ok: false; reason: DegradedReason; detail: string };
+
+/**
+ * Asks the models for an assessment, and does not give up on the first refusal.
+ *
+ * What this exists to prevent is the app's worst failure mode, which is also
+ * its quietest: one unlucky response and every person who arrives gets generic
+ * keyword-matched text that reads exactly like real guidance. The previous
+ * version sent one request per model and fell back on anything that was not a
+ * clean answer — so a single 503 from a busy Flash instance, or one key with a
+ * trailing newline, took the whole app down to keyword matching with nothing
+ * user-visible to say so.
+ *
+ * Four layers now sit between a problem and that outcome:
+ *
+ *   1. Load is retried. 429 and 5xx are transient by definition; the same model
+ *      is asked again with backoff before anything else is tried.
+ *   2. A rejected optional field costs one retry without that field, not the
+ *      request. Thinking config and response schema are both handled this way,
+ *      and the flag persists across models so it is paid for once.
+ *   3. Models are tried in order, and the list comes from the environment, so a
+ *      retired model name is a config change rather than an outage.
+ *   4. Whatever finally went wrong is named, not swallowed.
+ */
+async function generateAssessment(
+  buildBody: (options: ConfigOptions) => string,
+): Promise<GenerationResult> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return {
+      ok: false,
+      reason: "no_api_key",
+      detail: "GEMINI_API_KEY is not set, or is empty once trimmed.",
+    };
+  }
+
+  // Shared across models: once a field has been refused, stop sending it.
+  const options: ConfigOptions = { thinking: true, schema: true };
+  let last: { reason: DegradedReason; detail: string } = {
+    reason: "unreachable",
+    detail: "no model was reached",
+  };
+
+  for (const model of getModels()) {
+    let attempts = 0;
+    // Dropping a refused field earns one extra attempt, so the retry that goes
+    // out without it is not paid for from the transient-failure budget.
+    let allowance = MAX_ATTEMPTS_PER_MODEL;
+
+    while (attempts < allowance) {
+      attempts++;
+
+      try {
+        const response = await fetch(`${GEMINI_BASE}/${model}:generateContent`, {
+          method: "POST",
+          headers: geminiHeaders(apiKey),
+          body: buildBody(options),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+
+        if (!response.ok) {
+          const raw = await response.text();
+          // Collapsed to one line. Google's error bodies are pretty-printed
+          // JSON, and a multi-line log entry is one a hosted log viewer breaks
+          // into fragments — the reason ends up on a line of its own, without
+          // the prefix anyone would be searching for.
+          const body = raw.replace(/\s+/g, " ").trim();
+
+          if (options.thinking && isThinkingConfigRejection(response.status, body)) {
+            console.warn(`[assess] ${model} rejected thinkingConfig, retrying without it`);
+            options.thinking = false;
+            allowance++;
+            continue;
+          }
+
+          if (options.schema && isSchemaRejection(response.status, body)) {
+            console.warn(`[assess] ${model} rejected responseSchema, retrying without it`);
+            options.schema = false;
+            allowance++;
+            continue;
+          }
+
+          last = { reason: reasonForStatus(response.status), detail: `${model} ${response.status}: ${body.slice(0, 300)}` };
+          console.warn(`[assess] ${last.detail}`);
+
+          if (isTransientStatus(response.status) && attempts < allowance) {
+            await sleep(backoffMs(attempts));
+            continue;
+          }
+          break; // next model
+        }
+
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!rawText) {
+          const why = describeEmptyResponse(data);
+          last = { reason: "empty_response", detail: `${model} returned no text (${why})` };
+          console.warn(`[assess] ${last.detail}`);
+          break; // a different model is more likely to help than a repeat
+        }
+
+        const parsed = parseModelJSON(rawText);
+        if (parsed && isValidAssessment(parsed)) {
+          return { ok: true, assessment: parsed, model };
+        }
+
+        last = {
+          reason: "invalid_output",
+          detail: `${model} returned output that did not validate: ${rawText.slice(0, 200)}`,
+        };
+        console.warn(`[assess] ${last.detail}`);
+        break;
+      } catch (error) {
+        // A timeout, a DNS failure, a dropped connection. All worth retrying.
+        const detail = error instanceof Error ? error.message : String(error);
+        last = { reason: "unreachable", detail: `${model} request failed: ${detail}` };
+        console.warn(`[assess] ${last.detail}`);
+
+        if (attempts < allowance) {
+          await sleep(backoffMs(attempts));
+          continue;
+        }
+        break;
+      }
+    }
+  }
+
+  return { ok: false, ...last };
+}
+
+// ---------------------------------------------------------------------------
 // Streaming
 // ---------------------------------------------------------------------------
 
@@ -375,18 +590,19 @@ function sse(event: string, data: unknown): Uint8Array {
  */
 async function streamFromModel(
   model: string,
+  apiKey: string,
   requestBody: string,
   controller: ReadableStreamDefaultController<Uint8Array>,
 ): Promise<Record<string, unknown> | null> {
   const abort = new AbortController();
-  const timeout = setTimeout(() => abort.abort(), 45_000);
+  const timeout = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch(
-      `${GEMINI_BASE}/${model}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+      `${GEMINI_BASE}/${model}:streamGenerateContent?alt=sse`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: geminiHeaders(apiKey),
         body: requestBody,
         signal: abort.signal,
       },
@@ -480,13 +696,7 @@ async function streamFromModel(
  * unauthenticated. It never returns the key, or any part of it.
  */
 export async function GET(request: NextRequest) {
-  if (!GEMINI_API_KEY) {
-    return NextResponse.json(
-      { ok: false, reason: "no_api_key", detail: "GEMINI_API_KEY is not set." },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
-    );
-  }
-
+  // Rate limited because it is unauthenticated and it spends a model call.
   if (!(await allowRequest(clientBucket(request, "assess-health"), { max: 6, windowSeconds: 300 }))) {
     return NextResponse.json(
       { ok: false, reason: "rate_limited" },
@@ -494,72 +704,20 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const model = GEMINI_MODELS[0];
-  const started = Date.now();
+  const health = await checkModelHealth();
 
-  try {
-    const abort = AbortSignal.timeout(15_000);
-    const response = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: "ping" }] }],
-        generationConfig: {
-          maxOutputTokens: 8,
-          thinkingConfig: { thinkingBudget: THINKING_BUDGET },
-        },
-      }),
-      signal: abort,
-    });
-
-    const latencyMs = Date.now() - started;
-
-    if (!response.ok) {
-      const body = await response.text();
-      // Google's own message names the cause (invalid key, model not found,
-      // quota). It is about this deploy's configuration, not about any user,
-      // so it is safe to return — and it is the whole point of the endpoint.
-      return NextResponse.json(
-        {
-          ok: false,
-          reason: response.status === 400 ? "rejected" : "upstream_error",
-          model,
-          status: response.status,
-          detail: body.slice(0, 500),
-          latencyMs,
-        },
-        { status: 503, headers: { "Cache-Control": "no-store" } },
-      );
-    }
-
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    return NextResponse.json(
-      {
-        ok: typeof text === "string" && text.length > 0,
-        model,
-        latencyMs,
-        thinkingBudget: THINKING_BUDGET,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        ...(typeof text === "string" && text.length > 0
-          ? {}
-          : { reason: "empty_response", detail: describeEmptyResponse(data) }),
-      },
-      { headers: { "Cache-Control": "no-store" } },
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        reason: "unreachable",
-        model,
-        detail: error instanceof Error ? error.message : String(error),
-        latencyMs: Date.now() - started,
-      },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
-    );
-  }
+  return NextResponse.json(
+    {
+      ...health,
+      models: getModels(),
+      thinkingBudget: THINKING_BUDGET,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+    },
+    {
+      status: health.ok ? 200 : 503,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -611,7 +769,10 @@ export async function POST(request: Request) {
           usedFallback: false,
           latencyMs: Date.now() - startedAt,
         });
-        return NextResponse.json(cached.response);
+        // Normalised on the way out as well as on the way in, so an entry
+        // stored before the ordering rules existed — or one a reviewer edited
+        // in the table — still reaches the screen in the right order.
+        return NextResponse.json(normaliseAssessment(cached.response as Record<string, unknown>));
       }
     }
 
@@ -630,62 +791,121 @@ export async function POST(request: Request) {
       indicators: scopeIndicators(reference, ctx.categories),
     };
 
-    const requestPayload = (withThinkingConfig = true) =>
+    const requestPayload = (options: ConfigOptions = {}) =>
       JSON.stringify({
         systemInstruction: {
           parts: [{ text: buildSystemPrompt(lang, ctx, promptData) }],
         },
         contents: [{ role: "user", parts: [{ text: trimmedInput }] }],
-        generationConfig: generationConfig(withThinkingConfig),
+        generationConfig: generationConfig(options),
       });
 
     // -----------------------------------------------------------------------
-    // 2b. Streaming
+    // 3. Answering
     // -----------------------------------------------------------------------
-    // Opt-in and additive. The whole-response path below is untouched and stays
-    // the default, so a problem here degrades to the behaviour that already
-    // worked rather than breaking assessments.
-    if (body.stream === true && GEMINI_API_KEY) {
-      const payload = requestPayload();
+    // Both paths below end in the same three steps — order the assessment,
+    // store it if it is cacheable, record the anonymised event — so they share
+    // them. Ordering in particular has to happen in one place: the streamed and
+    // the whole-response paths returning differently ordered action steps for
+    // the same situation is the bug this was written to end.
+    const settle = (
+      assessment: Record<string, unknown>,
+      { model, cache }: { model?: string; cache: boolean },
+    ) => {
+      const ordered = normaliseAssessment(assessment, promptData.resources);
 
+      if (cache && cacheKey && answers && model) {
+        // Not awaited: the answer is ready, and caching is an optimisation
+        // rather than a dependency.
+        void storeAssessment({
+          cacheKey,
+          locale: lang,
+          answers,
+          context: ctx as unknown as CaseContext,
+          response: ordered,
+          model,
+        });
+      }
+
+      void recordAssessmentEvent({
+        province: ctx.province,
+        gender: ctx.gender,
+        locale: lang,
+        categories: ctx.categories ?? [],
+        severity: ordered.severity as string | undefined,
+        urgent: Boolean(ordered.is_urgent),
+        cacheHit: false,
+        usedFallback: !cache || reference.usedFallback,
+        latencyMs: Date.now() - startedAt,
+      });
+
+      return ordered;
+    };
+
+    /**
+     * The answer, however it has to be obtained. Model first; the offline
+     * keyword fallback only once every model and every retry is spent, and
+     * carrying the reason so the screen and the logs can both name it.
+     */
+    const answerOrFallback = async (): Promise<Record<string, unknown>> => {
+      const generated = await generateAssessment(requestPayload);
+
+      if (generated.ok) {
+        return settle(generated.assessment, { model: generated.model, cache: true });
+      }
+
+      // One line, one prefix, the reason first. This is what someone greps for
+      // when the app is "giving generic answers again".
+      console.error(
+        `[assess] falling back to offline guidance: reason=${generated.reason} ${generated.detail}`,
+      );
+
+      // Deliberately not cached. A degraded answer must never become the stored
+      // answer that every future person in this situation receives.
+      return settle(
+        getFallbackResponse(trimmedInput, ctx, promptData.resources, generated.reason),
+        { cache: false },
+      );
+    };
+
+    // -----------------------------------------------------------------------
+    // 3a. Streaming
+    // -----------------------------------------------------------------------
+    // Opt-in. The safety verdict and the opening sentence reach the person
+    // seconds before the law and the action steps.
+    //
+    // A stream that cannot be used finishes on the server rather than asking
+    // the browser to start again: the client used to re-POST, which doubled the
+    // wait in exactly the situation where the model was already struggling,
+    // and made a network blip between the two requests look like a crash. The
+    // partial frames already sent are only the safety verdict and the opening
+    // sentence, so completing over the top of them is coherent either way.
+    const apiKey = getApiKey();
+
+    if (body.stream === true && apiKey) {
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           try {
-            const result = await streamFromModel(GEMINI_MODELS[0], payload, controller);
+            const streamed = await streamFromModel(
+              getModels()[0],
+              apiKey,
+              requestPayload(),
+              controller,
+            );
 
-            if (result) {
-              if (cacheKey && answers) {
-                void storeAssessment({
-                  cacheKey,
-                  locale: lang,
-                  answers,
-                  context: ctx as unknown as CaseContext,
-                  response: result,
-                  model: GEMINI_MODELS[0],
-                });
-              }
+            const result = streamed
+              ? settle(streamed, { model: getModels()[0], cache: true })
+              : await answerOrFallback();
 
-              void recordAssessmentEvent({
-                province: ctx.province,
-                gender: ctx.gender,
-                locale: lang,
-                categories: ctx.categories ?? [],
-                severity: result.severity as string | undefined,
-                urgent: Boolean(result.is_urgent),
-                cacheHit: false,
-                usedFallback: reference.usedFallback,
-                latencyMs: Date.now() - startedAt,
-              });
-
-              controller.enqueue(sse("complete", result));
-            } else {
-              // The client retries without streaming, which reaches the
-              // non-streaming models and the offline fallback.
-              controller.enqueue(sse("retry", { reason: "stream_unusable" }));
-            }
+            controller.enqueue(sse("complete", result));
           } catch (error) {
-            console.error("Streaming assessment failed:", error);
-            controller.enqueue(sse("retry", { reason: "stream_failed" }));
+            console.error("[assess] streaming failed:", error);
+            try {
+              controller.enqueue(sse("complete", await answerOrFallback()));
+            } catch (fatal) {
+              console.error("[assess] recovery after a failed stream also failed:", fatal);
+              controller.enqueue(sse("retry", { reason: "stream_failed" }));
+            }
           } finally {
             controller.close();
           }
@@ -702,122 +922,9 @@ export async function POST(request: Request) {
     }
 
     // -----------------------------------------------------------------------
-    // 3. Model
+    // 3b. Whole response
     // -----------------------------------------------------------------------
-    try {
-      if (!GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY not configured");
-      }
-
-      let lastError: Error | null = null;
-      let useThinkingConfig = true;
-
-      for (let i = 0; i < GEMINI_MODELS.length; i++) {
-        const model = GEMINI_MODELS[i];
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 45_000);
-
-          const response = await fetch(
-            `${GEMINI_BASE}/${model}:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: requestPayload(useThinkingConfig),
-              signal: controller.signal,
-            },
-          );
-
-          clearTimeout(timeout);
-
-          if (!response.ok) {
-            const errorBody = await response.text();
-
-            // Retry this same model once without the thinking config rather
-            // than moving on: a model that rejects the field would otherwise
-            // send everyone to the offline fallback.
-            if (useThinkingConfig && isThinkingConfigRejection(response.status, errorBody)) {
-              console.warn(`${model} rejected thinkingConfig, retrying without it`);
-              useThinkingConfig = false;
-              i--; // same model, one more time. The flag stops this recurring.
-              continue;
-            }
-
-            console.warn(`${model} returned ${response.status}: ${errorBody}`);
-            lastError = new Error(`${model} error ${response.status}: ${errorBody}`);
-            continue;
-          }
-
-          const data = await response.json();
-          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!rawText) {
-            const why = describeEmptyResponse(data);
-            console.warn(`${model} returned no text (${why}), trying next model...`);
-            lastError = new Error(`${model} returned no text: ${why}`);
-            continue;
-          }
-
-          const parsed = parseModelJSON(rawText);
-          if (parsed && isValidAssessment(parsed)) {
-            // Store for the next person in the same situation. Not awaited: the
-            // answer is ready and caching is an optimisation, not a dependency.
-            if (cacheKey && answers) {
-              void storeAssessment({
-                cacheKey,
-                locale: lang,
-                answers,
-                context: ctx as unknown as CaseContext,
-                response: parsed,
-                model,
-              });
-            }
-
-            void recordAssessmentEvent({
-              province: ctx.province,
-              gender: ctx.gender,
-              locale: lang,
-              categories: ctx.categories ?? [],
-              severity: parsed.severity as string | undefined,
-              urgent: Boolean(parsed.is_urgent),
-              cacheHit: false,
-              usedFallback: reference.usedFallback,
-              latencyMs: Date.now() - startedAt,
-            });
-
-            return NextResponse.json(parsed);
-          }
-
-          console.warn(`${model} returned invalid JSON, trying next model...`);
-          lastError = new Error(`${model} returned invalid JSON`);
-        } catch (modelError) {
-          console.warn(`${model} failed:`, modelError);
-          lastError =
-            modelError instanceof Error ? modelError : new Error(String(modelError));
-        }
-      }
-
-      throw lastError || new Error("All models failed");
-    } catch (aiError) {
-      console.error("Assessment model error, using fallback:", aiError);
-
-      const fallback = getFallbackResponse(trimmedInput, ctx, promptData.resources);
-
-      void recordAssessmentEvent({
-        province: ctx.province,
-        gender: ctx.gender,
-        locale: lang,
-        categories: ctx.categories ?? [],
-        severity: fallback.severity,
-        urgent: fallback.is_urgent,
-        cacheHit: false,
-        usedFallback: true,
-        latencyMs: Date.now() - startedAt,
-      });
-
-      // Deliberately not cached. The offline fallback is a degraded answer and
-      // must not become the stored answer for that situation.
-      return NextResponse.json(fallback);
-    }
+    return NextResponse.json(await answerOrFallback());
   } catch (error) {
     console.error("Assessment error:", error);
     return NextResponse.json(

@@ -95,21 +95,46 @@ const ONLINE_ONLY = ["rel_online_unknown"];
 const isSpousal = (a: Answers) => has(a, "who", ...SPOUSAL);
 const isFamily = (a: Answers) => has(a, "who", ...FAMILY);
 const isDomestic = (a: Answers) => isSpousal(a) || isFamily(a);
-const isWorkplace = (a: Answers) =>
-  has(a, "who", ...WORKPLACE) || has(a, "where", "where_work", "where_education");
-const isOnline = (a: Answers) =>
-  has(a, "who", ...ONLINE_ONLY) || has(a, "where", "where_online");
+const isWorkplace = (a: Answers) => has(a, "who", ...WORKPLACE);
+const isOnline = (a: Answers) => has(a, "who", ...ONLINE_ONLY);
+
+/** Acts that put a case in cyber territory whoever did them — a husband and a
+    stranger blackmail with photographs in exactly the same way. */
+const CYBER_ACTS = ["act_images", "act_blackmail", "act_online_threats", "act_fake_account", "act_doxxing"];
+
+const involvesCyber = (a: Answers) => has(a, "whatHappened", ...CYBER_ACTS);
 
 /**
  * True while the marriage subsists in law — which is what determines whether
- * khula is available. "Separated" and "nikah done, rukhsati pending" both still
- * count as married; "divorced" does not. This is the distinction the old flow
- * missed when it offered khula to people whose answer was "Ex-partner".
+ * khula is available.
+ *
+ * This used to be a question of its own, asked after "who did this", with five
+ * options covering separated and nikah-without-rukhsati. It is now read
+ * straight off the relationship, because the relationship answer already
+ * carries it: "my husband or wife" is a marriage that subsists, including when
+ * the couple are living apart, and "my ex-husband or ex-wife" is one that does
+ * not. The labels say so explicitly for that reason. A fiancé or partner was
+ * never married, so khula was never available there either.
+ *
+ * The correctness this protects is the same as before — khula must not be
+ * offered to someone who is divorced, which is the error the original flow
+ * made — but it costs one screen instead of two.
  */
-const isStillMarried = (a: Answers) =>
-  has(a, "maritalStatus", "marital_married", "marital_separated", "marital_nikah_only");
+const isStillMarried = (a: Answers) => has(a, "who", "rel_spouse");
 
-const hasChildren = (a: Answers) => has(a, "children", "children_yes");
+/**
+ * True when the person has chosen a goal that only makes sense with children.
+ *
+ * Also inverted from how it worked before. There used to be a yes/no children
+ * question, and a follow-up asking their ages, purely so the goal list could
+ * decide whether to offer custody. Offering custody to everyone and reading the
+ * answer back off what they chose gets the same fact from a screen they were
+ * going to see anyway — nobody selects "I want custody of my children" by
+ * accident.
+ */
+const CHILD_INTENTS = ["intent_custody", "intent_child_maintenance"];
+
+const hasChildren = (a: Answers) => has(a, "intent", ...CHILD_INTENTS);
 
 // ---------------------------------------------------------------------------
 // Option catalogues
@@ -168,50 +193,27 @@ const PROVINCE_OPTIONS: FlowOption[] = [
   },
 ];
 
-const WHERE_OPTIONS: FlowOption[] = [
-  { id: "where_home", label: { en: "At home", ur: "گھر میں" }, narrative: "This happened at home" },
-  {
-    id: "where_work",
-    label: { en: "At work", ur: "کام کی جگہ پر" },
-    narrative: "This happened at my workplace",
-  },
-  {
-    id: "where_education",
-    label: { en: "At school, college or university", ur: "اسکول، کالج یا یونیورسٹی میں" },
-    narrative: "This happened at my educational institution",
-  },
-  {
-    id: "where_online",
-    label: { en: "Online or on my phone", ur: "آن لائن یا میرے فون پر" },
-    narrative: "This happened online or through my phone",
-  },
-  {
-    id: "where_public",
-    label: { en: "In a public place", ur: "عوامی جگہ پر" },
-    narrative: "This happened in a public place",
-  },
-  {
-    id: "where_institution",
-    label: {
-      en: "At a hospital, police station or government office",
-      ur: "ہسپتال، تھانے یا سرکاری دفتر میں",
-    },
-    narrative:
-      "This happened at a hospital, police station or government office, at the hands of someone acting in an official capacity",
-  },
-  { id: "where_other", label: { en: "Somewhere else", ur: "کسی اور جگہ" } },
-];
-
 const WHO_OPTIONS: FlowOption[] = [
   {
     id: "rel_spouse",
-    label: { en: "My husband or wife", ur: "میرے شوہر یا بیوی" },
-    narrative: "The person who did this is my spouse",
+    // The parenthetical is doing legal work, not reassurance. Khula is open
+    // while the marriage subsists, and living apart does not end a marriage —
+    // so someone who has left must still recognise themselves in this option
+    // rather than reaching for the one below it.
+    label: {
+      en: "My husband or wife — including if we are separated",
+      ur: "میرے شوہر یا بیوی — چاہے ہم الگ رہ رہے ہوں",
+    },
+    narrative:
+      "The person who did this is my spouse, and we are still legally married",
   },
   {
     id: "rel_ex_spouse",
-    label: { en: "My ex-husband or ex-wife", ur: "میرے سابق شوہر یا سابق بیوی" },
-    narrative: "The person who did this is my former spouse",
+    label: {
+      en: "My ex-husband or ex-wife — we are divorced",
+      ur: "میرے سابق شوہر یا سابق بیوی — ہماری طلاق ہو چکی ہے",
+    },
+    narrative: "The person who did this is my former spouse, and the marriage has ended",
   },
   {
     id: "rel_partner",
@@ -278,198 +280,6 @@ const WHO_OPTIONS: FlowOption[] = [
     id: "rel_online_unknown",
     label: { en: "Someone online I have never met", ur: "آن لائن کوئی جسے میں نے کبھی نہیں دیکھا" },
     narrative: "The person who did this is someone online whom I have never met in person",
-  },
-];
-
-const MARITAL_OPTIONS: FlowOption[] = [
-  {
-    id: "marital_married",
-    label: { en: "We are still married", ur: "ہماری شادی اب بھی قائم ہے" },
-    narrative: "We are still legally married and living together",
-  },
-  {
-    id: "marital_separated",
-    label: { en: "Married but living apart", ur: "شادی شدہ لیکن الگ رہ رہے ہیں" },
-    narrative: "We are still legally married but living apart",
-  },
-  {
-    id: "marital_nikah_only",
-    label: { en: "Nikah done, rukhsati not yet", ur: "نکاح ہو چکا، رخصتی نہیں ہوئی" },
-    narrative: "Our nikah has taken place but rukhsati has not, so we are legally married",
-  },
-  {
-    id: "marital_divorced",
-    label: { en: "We are divorced", ur: "ہماری طلاق ہو چکی ہے" },
-    narrative: "We are divorced and the marriage is legally over",
-  },
-  {
-    id: "marital_never_married",
-    label: { en: "We were never married", ur: "ہماری کبھی شادی نہیں ہوئی" },
-    narrative: "We were never married to each other",
-  },
-];
-
-const CHILDREN_OPTIONS: FlowOption[] = [
-  { id: "children_yes", label: { en: "Yes", ur: "ہاں" } },
-  { id: "children_no", label: { en: "No", ur: "نہیں" } },
-];
-
-const CHILD_AGE_OPTIONS: FlowOption[] = [
-  {
-    id: "kids_under2",
-    label: { en: "Under 2 years", ur: "2 سال سے کم" },
-    narrative: "a child under two",
-  },
-  { id: "kids_2_6", label: { en: "2 to 6 years", ur: "2 سے 6 سال" }, narrative: "a child aged two to six" },
-  {
-    id: "kids_7_12",
-    label: { en: "7 to 12 years", ur: "7 سے 12 سال" },
-    narrative: "a child aged seven to twelve",
-  },
-  {
-    id: "kids_13_17",
-    label: { en: "13 to 17 years", ur: "13 سے 17 سال" },
-    narrative: "a teenage child",
-  },
-  { id: "kids_adult", label: { en: "18 or older", ur: "18 یا زیادہ" }, narrative: "an adult child" },
-];
-
-const RECENCY_OPTIONS: FlowOption[] = [
-  {
-    id: "when_now",
-    label: { en: "It is happening right now", ur: "یہ ابھی ہو رہا ہے" },
-    narrative: "This is happening right now",
-    urgent: true,
-  },
-  {
-    id: "when_today",
-    label: { en: "Today", ur: "آج" },
-    narrative: "This happened today, within the last 24 hours",
-  },
-  {
-    id: "when_week",
-    label: { en: "Within the past week", ur: "گزشتہ ہفتے کے دوران" },
-    narrative: "This happened within the past week",
-  },
-  {
-    id: "when_month",
-    label: { en: "Within the past month", ur: "گزشتہ مہینے کے دوران" },
-    narrative: "This happened within the past month",
-  },
-  {
-    id: "when_older",
-    label: { en: "More than a month ago", ur: "ایک مہینے سے زیادہ پہلے" },
-    narrative: "This happened more than a month ago",
-  },
-  {
-    id: "when_years",
-    label: { en: "It has gone on for years", ur: "یہ برسوں سے چل رہا ہے" },
-    narrative: "This has been going on for years",
-  },
-];
-
-const FREQUENCY_OPTIONS: FlowOption[] = [
-  {
-    id: "freq_once",
-    label: { en: "It happened once", ur: "ایک بار ہوا" },
-    narrative: "It happened once",
-  },
-  {
-    id: "freq_sometimes",
-    label: { en: "A few times", ur: "چند بار" },
-    narrative: "It has happened a few times",
-  },
-  {
-    id: "freq_regular",
-    label: { en: "Regularly", ur: "باقاعدگی سے" },
-    narrative: "It happens regularly",
-  },
-  {
-    id: "freq_escalating",
-    label: { en: "It is getting worse", ur: "یہ بگڑتا جا رہا ہے" },
-    narrative: "It is happening repeatedly and getting worse over time",
-  },
-];
-
-const EVIDENCE_OPTIONS: FlowOption[] = [
-  {
-    id: "ev_medical",
-    label: { en: "A medical or hospital report", ur: "طبی یا ہسپتال کی رپورٹ" },
-    narrative: "a medical or hospital report",
-  },
-  {
-    id: "ev_photos",
-    label: { en: "Photographs of injuries", ur: "زخموں کی تصاویر" },
-    narrative: "photographs of my injuries",
-  },
-  {
-    id: "ev_screenshots",
-    label: { en: "Screenshots, messages or call records", ur: "اسکرین شاٹس، پیغامات یا کال ریکارڈ" },
-    narrative: "screenshots, messages or call records",
-  },
-  {
-    id: "ev_recordings",
-    label: { en: "Audio or video recordings", ur: "آڈیو یا ویڈیو ریکارڈنگ" },
-    narrative: "audio or video recordings",
-  },
-  {
-    id: "ev_witnesses",
-    label: { en: "People who saw or heard it", ur: "ایسے لوگ جنہوں نے دیکھا یا سنا" },
-    narrative: "witnesses who saw or heard what happened",
-  },
-  {
-    id: "ev_nikahnama",
-    label: { en: "My nikah nama", ur: "میرا نکاح نامہ" },
-    narrative: "my nikah nama",
-  },
-  {
-    id: "ev_cnic",
-    label: { en: "My CNIC and other documents", ur: "میرا شناختی کارڈ اور دیگر کاغذات" },
-    narrative: "my CNIC and identity documents",
-  },
-  {
-    id: "ev_none",
-    label: { en: "Nothing yet", ur: "ابھی کچھ نہیں" },
-    narrative: "no evidence collected yet",
-  },
-];
-
-const REPORTED_OPTIONS: FlowOption[] = [
-  {
-    id: "rep_nobody",
-    label: { en: "I have not told anyone", ur: "میں نے کسی کو نہیں بتایا" },
-    narrative: "I have not told anyone about this yet",
-  },
-  {
-    id: "rep_family",
-    label: { en: "Only family or friends", ur: "صرف خاندان یا دوستوں کو" },
-    narrative: "I have told family or friends, but no authority",
-  },
-  {
-    id: "rep_police_refused",
-    label: { en: "I went to the police but no FIR was registered", ur: "میں پولیس کے پاس گئی لیکن ایف آئی آر درج نہیں ہوئی" },
-    narrative:
-      "I went to the police but they did not register an FIR",
-  },
-  {
-    id: "rep_fir",
-    label: { en: "An FIR has been registered", ur: "ایف آئی آر درج ہو چکی ہے" },
-    narrative: "An FIR has already been registered",
-  },
-  {
-    id: "rep_court",
-    label: { en: "There is already a case in court", ur: "عدالت میں پہلے سے مقدمہ ہے" },
-    narrative: "There is already a case pending in court",
-  },
-  {
-    id: "rep_employer",
-    label: { en: "I complained to my employer or institution", ur: "میں نے اپنے ادارے میں شکایت کی" },
-    narrative: "I have complained internally to my employer or institution",
-  },
-  {
-    id: "rep_helpline",
-    label: { en: "I called a helpline", ur: "میں نے ہیلپ لائن پر کال کی" },
-    narrative: "I have called a helpline before",
   },
 ];
 
@@ -565,6 +375,19 @@ function whatHappenedOptions(answers: Answers): FlowOption[] {
       },
       narrative:
         "My private photographs or messages were shared, or there were threats to share them",
+    },
+    {
+      id: "act_blackmail",
+      label: { en: "Blackmailed me with private material", ur: "نجی مواد سے بلیک میل کیا" },
+      narrative: "I am being blackmailed with private material",
+    },
+    {
+      id: "act_online_threats",
+      label: {
+        en: "Sent me threatening or obscene messages",
+        ur: "دھمکی آمیز یا فحش پیغامات بھیجے",
+      },
+      narrative: "I received threatening or obscene messages",
     },
     {
       id: "act_other",
@@ -674,13 +497,14 @@ function whatHappenedOptions(answers: Answers): FlowOption[] {
     );
   }
 
-  if (isOnline(answers) || has(answers, "where", "where_online")) {
+  // Blackmail and threatening messages used to live in this block, which meant
+  // they were only offered once the perpetrator was "someone online I have
+  // never met". A husband threatening to circulate photographs is the more
+  // common case in the referrals we see, and it was unreachable. They are in
+  // the base list now; what remains here is genuinely specific to an account
+  // rather than a person.
+  if (isOnline(answers)) {
     contextual.push(
-      {
-        id: "act_blackmail",
-        label: { en: "Blackmailed me with private material", ur: "نجی مواد سے بلیک میل کیا" },
-        narrative: "I am being blackmailed with private material",
-      },
       {
         id: "act_fake_account",
         label: {
@@ -697,11 +521,6 @@ function whatHappenedOptions(answers: Answers): FlowOption[] {
           ur: "میرا نمبر، پتہ یا نجی تفصیلات شائع کیں",
         },
         narrative: "My phone number, address or private details were published online",
-      },
-      {
-        id: "act_online_threats",
-        label: { en: "Sent me threatening or obscene messages", ur: "دھمکی آمیز یا فحش پیغامات بھیجے" },
-        narrative: "I received threatening or obscene messages",
       },
     );
   }
@@ -743,6 +562,27 @@ function intentOptions(answers: Answers): FlowOption[] {
     narrative:
       "I am not ready to take formal action yet. I want to understand my rights and my options first",
   };
+  const stopContact: FlowOption = {
+    id: "intent_stop_contact",
+    label: { en: "I want them to stop contacting me", ur: "میں چاہتی/چاہتا ہوں وہ رابطہ بند کریں" },
+    narrative: "I want this person to stop contacting me",
+  };
+  const removeContent: FlowOption = {
+    id: "intent_remove_content",
+    label: { en: "I want the content taken down", ur: "میں چاہتی/چاہتا ہوں یہ مواد ہٹا دیا جائے" },
+    narrative: "I want the content removed from the internet",
+  };
+
+  /**
+   * Goals that follow from what was described rather than from who did it.
+   *
+   * A takedown is the right first move whether the photographs are being
+   * circulated by a stranger or by a husband, and the second is the more common
+   * referral. This used to depend on the perpetrator being "someone online",
+   * so the goal was unreachable for most of the people who needed it.
+   */
+  const actDriven: FlowOption[] =
+    involvesCyber(answers) && !isOnline(answers) ? [removeContent] : [];
 
   if (isSpousal(answers)) {
     opts.push(stopIt, protection);
@@ -760,46 +600,31 @@ function intentOptions(answers: Answers): FlowOption[] {
           narrative: "I want to claim maintenance",
         },
       );
-    } else {
       opts.push({
-        id: "intent_stop_contact",
-        label: { en: "I want them to stop contacting me", ur: "میں چاہتی/چاہتا ہوں وہ رابطہ بند کریں" },
-        narrative: "I want this person to stop contacting me",
+        id: "intent_leave_home",
+        label: { en: "I want to leave the house safely", ur: "میں محفوظ طریقے سے گھر چھوڑنا چاہتی ہوں" },
+        narrative: "I want to leave the household safely",
       });
+    } else {
+      opts.push(stopContact);
     }
 
-    if (hasChildren(answers)) {
-      if (isStillMarried(answers)) {
-        opts.push(
-          {
-            id: "intent_leave_with_kids",
-            label: { en: "I want to leave, with my children", ur: "میں اپنے بچوں کے ساتھ جانا چاہتی ہوں" },
-            narrative: "I want to leave the household and take my children with me",
-          },
-          {
-            id: "intent_leave_without_kids",
-            label: {
-              en: "I want to leave, without my children for now",
-              ur: "میں فی الحال بچوں کے بغیر جانا چاہتی ہوں",
-            },
-            narrative:
-              "I want to leave the household, without my children for the time being",
-          },
-        );
-      }
-      opts.push(
-        {
-          id: "intent_custody",
-          label: { en: "I want custody of my children", ur: "مجھے اپنے بچوں کی تحویل چاہیے" },
-          narrative: "I want custody of my children",
-        },
-        {
-          id: "intent_child_maintenance",
-          label: { en: "I want maintenance for my children", ur: "مجھے بچوں کا خرچ چاہیے" },
-          narrative: "I want maintenance for my children",
-        },
-      );
-    }
+    // Offered to everyone in this branch rather than behind a "do you have
+    // children?" question and an ages question after it. Someone without
+    // children reads past these two lines; someone with them has answered both
+    // of the questions those screens used to ask by picking one.
+    opts.push(
+      {
+        id: "intent_custody",
+        label: { en: "I want custody of my children", ur: "مجھے اپنے بچوں کی تحویل چاہیے" },
+        narrative: "I want custody of my children",
+      },
+      {
+        id: "intent_child_maintenance",
+        label: { en: "I want maintenance for my children", ur: "مجھے بچوں کا خرچ چاہیے" },
+        narrative: "I want maintenance for my children",
+      },
+    );
 
     opts.push({
       id: "intent_dowry_recovery",
@@ -819,7 +644,7 @@ function intentOptions(answers: Answers): FlowOption[] {
       });
     }
 
-    opts.push(criminal, understand);
+    opts.push(...actDriven, criminal, understand);
     return opts;
   }
 
@@ -842,6 +667,7 @@ function intentOptions(answers: Answers): FlowOption[] {
         label: { en: "I want my share of inheritance or property", ur: "مجھے وراثت یا جائیداد میں اپنا حصہ چاہیے" },
         narrative: "I want to claim my share of inheritance or property",
       },
+      ...actDriven,
       criminal,
       understand,
     ];
@@ -870,6 +696,7 @@ function intentOptions(answers: Answers): FlowOption[] {
         narrative:
           "I want to keep my job or my place at the institution while this is resolved",
       },
+      ...actDriven,
       criminal,
       understand,
     ];
@@ -877,16 +704,8 @@ function intentOptions(answers: Answers): FlowOption[] {
 
   if (isOnline(answers)) {
     return [
-      {
-        id: "intent_remove_content",
-        label: { en: "I want the content taken down", ur: "میں چاہتی/چاہتا ہوں یہ مواد ہٹا دیا جائے" },
-        narrative: "I want the content removed from the internet",
-      },
-      {
-        id: "intent_stop_contact",
-        label: { en: "I want them to stop contacting me", ur: "میں چاہتی/چاہتا ہوں وہ رابطہ بند کریں" },
-        narrative: "I want this person to stop contacting me",
-      },
+      removeContent,
+      stopContact,
       {
         id: "intent_identify",
         label: { en: "I want to find out who is doing this", ur: "میں جاننا چاہتی/چاہتا ہوں یہ کون کر رہا ہے" },
@@ -897,17 +716,7 @@ function intentOptions(answers: Answers): FlowOption[] {
     ];
   }
 
-  return [
-    stopIt,
-    protection,
-    {
-      id: "intent_stop_contact",
-      label: { en: "I want them to stop contacting me", ur: "میں چاہتی/چاہتا ہوں وہ رابطہ بند کریں" },
-      narrative: "I want this person to stop contacting me",
-    },
-    criminal,
-    understand,
-  ];
+  return [stopIt, protection, stopContact, ...actDriven, criminal, understand];
 }
 
 // ---------------------------------------------------------------------------
@@ -949,70 +758,14 @@ export const FLOW_STEPS: FlowStep[] = [
     options: PROVINCE_OPTIONS,
   },
   {
-    id: "where",
-    kind: "single",
-    question: { en: "Where did this happen?", ur: "یہ کہاں ہوا؟" },
-    options: WHERE_OPTIONS,
-  },
-  {
     id: "who",
     kind: "single",
     question: { en: "Who did this?", ur: "یہ کس نے کیا؟" },
+    help: {
+      en: "This decides which law applies. A husband, an employer and a stranger are three different cases in Pakistani law, even for the same act.",
+      ur: "اس سے طے ہوتا ہے کہ کون سا قانون لاگو ہوگا۔ ایک ہی عمل کے لیے شوہر، آجر اور اجنبی پاکستانی قانون میں تین الگ معاملات ہیں۔",
+    },
     options: WHO_OPTIONS,
-  },
-  {
-    id: "maritalStatus",
-    kind: "single",
-    question: {
-      en: "What is your marriage status with this person?",
-      ur: "اس شخص کے ساتھ آپ کی ازدواجی حیثیت کیا ہے؟",
-    },
-    help: {
-      en: "This decides which family law remedies are open to you. Khula, for instance, is only available while the marriage still stands.",
-      ur: "اس سے طے ہوتا ہے کہ عائلی قانون کے کون سے راستے آپ کے لیے کھلے ہیں۔ مثلاً خلع صرف اسی وقت ممکن ہے جب نکاح قائم ہو۔",
-    },
-    visibleWhen: isSpousal,
-    options: MARITAL_OPTIONS,
-  },
-  {
-    id: "children",
-    kind: "single",
-    question: {
-      en: "Are there children in this situation?",
-      ur: "کیا اس صورتحال میں بچے شامل ہیں؟",
-    },
-    visibleWhen: isDomestic,
-    options: CHILDREN_OPTIONS,
-  },
-  {
-    id: "intent",
-    kind: "multi",
-    question: { en: "What would you like to happen?", ur: "آپ کیا چاہتی/چاہتے ہیں؟" },
-    help: {
-      en: "Choose as many as apply. There is no wrong answer, and choosing something here does not commit you to it.",
-      ur: "جتنے بھی لاگو ہوں منتخب کریں۔ کوئی جواب غلط نہیں، اور یہاں کچھ منتخب کرنے کا مطلب یہ نہیں کہ آپ اس کی پابند ہیں۔",
-    },
-    options: intentOptions,
-  },
-  {
-    id: "childAges",
-    kind: "multi",
-    question: { en: "How old are the children?", ur: "بچوں کی عمریں کیا ہیں؟" },
-    help: {
-      en: "Custody rules in Pakistan turn on the child's age, so this materially changes the advice.",
-      ur: "پاکستان میں تحویل کے قواعد بچے کی عمر پر منحصر ہیں، اس لیے اس سے مشورہ نمایاں طور پر بدلتا ہے۔",
-    },
-    visibleWhen: (a) =>
-      hasChildren(a) &&
-      has(
-        a,
-        "intent",
-        "intent_custody",
-        "intent_leave_with_kids",
-        "intent_leave_without_kids",
-        "intent_child_maintenance",
-      ),
-    options: CHILD_AGE_OPTIONS,
   },
   {
     id: "whatHappened",
@@ -1025,45 +778,14 @@ export const FLOW_STEPS: FlowStep[] = [
     options: whatHappenedOptions,
   },
   {
-    id: "recency",
-    kind: "single",
-    question: { en: "When did this happen?", ur: "یہ کب ہوا؟" },
-    help: {
-      en: "Timing matters. A medico-legal report carries most weight within 24 hours of an injury.",
-      ur: "وقت اہم ہے۔ میڈیکو لیگل رپورٹ زخم کے 24 گھنٹوں کے اندر سب سے زیادہ وزن رکھتی ہے۔",
-    },
-    options: RECENCY_OPTIONS,
-  },
-  {
-    id: "frequency",
-    kind: "single",
-    optional: true,
-    question: { en: "How often does this happen?", ur: "یہ کتنی بار ہوتا ہے؟" },
-    options: FREQUENCY_OPTIONS,
-  },
-  {
-    id: "evidence",
+    id: "intent",
     kind: "multi",
-    optional: true,
-    question: {
-      en: "Do you already have any of these?",
-      ur: "کیا آپ کے پاس ان میں سے کچھ پہلے سے موجود ہے؟",
-    },
+    question: { en: "What would you like to happen?", ur: "آپ کیا چاہتی/چاہتے ہیں؟" },
     help: {
-      en: "Knowing what you already hold lets us tell you what is still missing before you go to court or the police.",
-      ur: "یہ جان کر کہ آپ کے پاس کیا موجود ہے، ہم بتا سکتے ہیں کہ عدالت یا پولیس جانے سے پہلے کیا کمی ہے۔",
+      en: "Choose as many as apply. There is no wrong answer, and choosing something here does not commit you to it.",
+      ur: "جتنے بھی لاگو ہوں منتخب کریں۔ کوئی جواب غلط نہیں، اور یہاں کچھ منتخب کرنے کا مطلب یہ نہیں کہ آپ اس کی پابند ہیں۔",
     },
-    options: EVIDENCE_OPTIONS,
-  },
-  {
-    id: "reported",
-    kind: "single",
-    optional: true,
-    question: {
-      en: "Have you reported this to anyone already?",
-      ur: "کیا آپ نے یہ بات پہلے کسی کو بتائی ہے؟",
-    },
-    options: REPORTED_OPTIONS,
+    options: intentOptions,
   },
   {
     id: "additional",
@@ -1249,46 +971,13 @@ export function buildNarrative(answers: Answers, additionalText = ""): string {
   const safety = single("safety");
   if (safety) parts.push(`${safety}.`);
 
-  const where = single("where");
-  if (where) parts.push(`${where}.`);
-
   const who = single("who");
   if (who) parts.push(`${who}.`);
-
-  const marital = single("maritalStatus");
-  if (marital) parts.push(`${marital}.`);
-
-  if (has(answers, "children", "children_yes")) {
-    const ages = multi("childAges");
-    parts.push(
-      ages.length
-        ? `There are children involved: ${joinList(ages)}.`
-        : "There are children involved.",
-    );
-  } else if (has(answers, "children", "children_no")) {
-    parts.push("There are no children involved.");
-  }
 
   const acts = multi("whatHappened");
   if (acts.length) parts.push(`${joinList(acts)}.`);
 
-  const when = single("recency");
-  if (when) parts.push(`${when}.`);
-
-  const freq = single("frequency");
-  if (freq) parts.push(`${freq}.`);
-
-  const evidence = multi("evidence");
-  if (evidence.length) {
-    parts.push(
-      has(answers, "evidence", "ev_none")
-        ? "I have not collected any evidence yet."
-        : `Evidence I already have: ${joinList(evidence)}.`,
-    );
-  }
-
-  const reported = single("reported");
-  if (reported) parts.push(`${reported}.`);
+  if (hasChildren(answers)) parts.push("There are children involved.");
 
   const goals = multi("intent");
   if (goals.length) parts.push(`What I want: ${joinList(goals)}.`);
@@ -1362,8 +1051,7 @@ const INTENT_CATEGORIES: Record<string, CaseCategory[]> = {
   intent_maintenance: ["family_law", "economic"],
   intent_custody: ["family_law", "child"],
   intent_child_maintenance: ["family_law", "economic", "child"],
-  intent_leave_with_kids: ["family_law", "domestic", "child"],
-  intent_leave_without_kids: ["family_law", "domestic"],
+  intent_leave_home: ["family_law", "domestic"],
   intent_dowry_recovery: ["family_law", "economic"],
   intent_inheritance: ["economic", "family_law"],
   intent_stop_forced_marriage: ["harmful_practice", "family_law"],

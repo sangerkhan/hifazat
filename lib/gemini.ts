@@ -37,23 +37,214 @@ export const MAX_OUTPUT_TOKENS = 8192;
 /** Lower, factual answers: this is legal guidance, not prose. */
 export const TEMPERATURE = 0.3;
 
+// ---------------------------------------------------------------------------
+// Credentials
+// ---------------------------------------------------------------------------
+
+/**
+ * The API key, read at call time and cleaned.
+ *
+ * Two deliberate details, each of which has taken this app offline:
+ *
+ * 1. READ AT CALL TIME, not at module load. A module-scope read is evaluated
+ *    once, when the serverless function is first loaded, which is before the
+ *    platform has necessarily finished resolving the environment for that
+ *    invocation. Reading per request costs nothing and means rotating the key
+ *    takes effect on the next request rather than the next cold start.
+ *
+ * 2. TRIMMED, and with surrounding quotes removed. A key pasted into a
+ *    dashboard or a .env file routinely arrives as `AIza...\n` or `"AIza..."`.
+ *    Google rejects both with a 400 API_KEY_INVALID, which this app used to
+ *    turn into "every user silently gets the offline fallback" — the exact
+ *    failure reported as "the AI keeps breaking again". A stray newline is not
+ *    a reason to stop answering people.
+ */
+export function getApiKey(): string | undefined {
+  const raw = process.env.GEMINI_API_KEY;
+  if (typeof raw !== "string") return undefined;
+
+  const cleaned = raw.trim().replace(/^["']|["']$/g, "").trim();
+  return cleaned.length ? cleaned : undefined;
+}
+
+/**
+ * The models to try, in order.
+ *
+ * Overridable by environment because the one failure this app cannot fix in
+ * code is Google retiring a model name. When that happens every request 404s
+ * and everyone gets the fallback until a deploy lands; with this, it is a
+ * config change.
+ */
+export function getModels(): string[] {
+  const configured = process.env.GEMINI_MODELS?.split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+
+  return configured?.length ? configured : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+}
+
+// ---------------------------------------------------------------------------
+// Transient failures
+// ---------------------------------------------------------------------------
+
+/** How many times a single model is retried before moving to the next one. */
+export const MAX_ATTEMPTS_PER_MODEL = 3;
+
+/**
+ * Whether a status is worth trying again with the same model.
+ *
+ * 429 and the 5xx family are load, not a wrong request: Flash is a shared
+ * resource and a busy minute used to be indistinguishable from a broken
+ * deployment, because a single 503 dropped the whole request to keyword
+ * matching. Anything else — a bad key, a bad model name, a rejected payload —
+ * will fail identically however many times it is sent, so it is not retried.
+ */
+export function isTransientStatus(status: number): boolean {
+  return status === 429 || status === 408 || (status >= 500 && status <= 599);
+}
+
+/** Exponential backoff with jitter, so retries do not arrive in lockstep. */
+export function backoffMs(attempt: number, jitter = Math.random()): number {
+  const base = 400 * 2 ** (attempt - 1);
+  return Math.round(base + jitter * 250);
+}
+
+// ---------------------------------------------------------------------------
+// Generation config
+// ---------------------------------------------------------------------------
+
+/**
+ * The exact shape the route validates and the UI renders.
+ *
+ * Asking for JSON gets JSON-shaped text; asking for JSON *against a schema*
+ * gets an object that parses and validates. Before this, a response that came
+ * back with a missing `actions` array or a `severity` of "high" failed
+ * validation and the person got the keyword fallback — a full model round trip
+ * spent, and generic text shown, over a field name.
+ *
+ * `propertyOrdering` is load-bearing beyond validation: it guarantees
+ * `is_urgent` and `validation` are serialised first, which is what lets the
+ * streaming path show someone their safety verdict seconds before the rest of
+ * the assessment arrives. That used to be a request in the prompt and a hope.
+ */
+export const RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    is_urgent: { type: "BOOLEAN" },
+    validation: { type: "STRING" },
+    severity: { type: "STRING", enum: ["concerning", "serious", "critical"] },
+    severity_explanation: { type: "STRING" },
+    classifications: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          category_id: { type: "STRING" },
+          category_name: { type: "STRING" },
+          indicator_id: { type: "STRING" },
+          indicator_name: { type: "STRING" },
+          explanation: { type: "STRING" },
+          legal_reference: { type: "STRING" },
+        },
+        required: [
+          "category_id",
+          "category_name",
+          "indicator_id",
+          "indicator_name",
+          "explanation",
+          "legal_reference",
+        ],
+      },
+    },
+    actions: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          step: { type: "STRING" },
+          details: { type: "STRING" },
+          priority: {
+            type: "STRING",
+            enum: ["immediate", "short_term", "longer_term"],
+          },
+        },
+        required: ["step", "details", "priority"],
+      },
+    },
+    resources: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          phone: { type: "STRING" },
+          website: { type: "STRING" },
+          why: { type: "STRING" },
+        },
+        required: ["name", "why"],
+      },
+    },
+    note: { type: "STRING" },
+    primary_action: {
+      type: "OBJECT",
+      properties: {
+        type: { type: "STRING", enum: ["call", "link"] },
+        label: { type: "STRING" },
+        value: { type: "STRING" },
+        description: { type: "STRING" },
+      },
+      required: ["type", "label", "value"],
+    },
+  },
+  required: [
+    "is_urgent",
+    "validation",
+    "severity",
+    "severity_explanation",
+    "classifications",
+    "actions",
+    "resources",
+  ],
+  propertyOrdering: [
+    "is_urgent",
+    "validation",
+    "severity",
+    "severity_explanation",
+    "classifications",
+    "actions",
+    "resources",
+    "note",
+    "primary_action",
+  ],
+} as const;
+
 export interface GenerationConfig {
   temperature: number;
   maxOutputTokens: number;
   responseMimeType: string;
+  responseSchema?: unknown;
   thinkingConfig?: { thinkingBudget: number };
 }
 
-/**
- * @param withThinkingConfig false only when a model has rejected the field,
- * so one retry can go out without it rather than dropping to the fallback.
- */
-export function generationConfig(withThinkingConfig = true): GenerationConfig {
+/** Which optional fields a request carries, so a rejection can drop just one. */
+export interface ConfigOptions {
+  /** False only when a model has rejected the field, so one retry can go out
+      without it rather than dropping the person to the fallback. */
+  thinking?: boolean;
+  /** False when a model has rejected the response schema, same reasoning. */
+  schema?: boolean;
+}
+
+export function generationConfig({
+  thinking = true,
+  schema = true,
+}: ConfigOptions = {}): GenerationConfig {
   return {
     temperature: TEMPERATURE,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     responseMimeType: "application/json",
-    ...(withThinkingConfig ? { thinkingConfig: { thinkingBudget: THINKING_BUDGET } } : {}),
+    ...(schema ? { responseSchema: RESPONSE_SCHEMA } : {}),
+    ...(thinking ? { thinkingConfig: { thinkingBudget: THINKING_BUDGET } } : {}),
   };
 }
 
@@ -107,4 +298,35 @@ export function describeEmptyResponse(data: unknown): string {
  */
 export function isThinkingConfigRejection(status: number, body: string): boolean {
   return status === 400 && /thinking|thought/i.test(body);
+}
+
+/**
+ * A 400 that names the response schema. Same shape of problem as the thinking
+ * config: a field a future model stops accepting must cost one retry without
+ * it, not every assessment from then on.
+ */
+export function isSchemaRejection(status: number, body: string): boolean {
+  return status === 400 && /response_?schema|responseSchema|property_?ordering/i.test(body);
+}
+
+/**
+ * Why the assessment fell back to keyword matching.
+ *
+ * Carried through to the result screen and the logs so that "the AI is not
+ * working" stops being one undifferentiated symptom. Each value names a
+ * different fix, and the operator should never again have to guess which.
+ */
+export type DegradedReason =
+  | "no_api_key"
+  | "rejected"
+  | "quota"
+  | "unreachable"
+  | "empty_response"
+  | "invalid_output";
+
+/** Maps an upstream HTTP status onto the reason an operator needs to act on. */
+export function reasonForStatus(status: number): DegradedReason {
+  if (status === 429) return "quota";
+  if (status === 400 || status === 401 || status === 403 || status === 404) return "rejected";
+  return "unreachable";
 }

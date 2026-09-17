@@ -63,6 +63,9 @@ export interface AssessmentData {
   /** Set by the offline fallback: generic guidance, not an analysis of the
       account the person gave. */
   degraded?: boolean;
+  /** Why, for the logs and the admin overview. Not shown to the person — a
+      quota code is not their problem and not their fault. */
+  degraded_reason?: string;
 }
 
 const SEVERITY_KEYS = {
@@ -207,7 +210,10 @@ export default function AssessmentResult({
         <LanguageToggle />
       </div>
 
-      {/* Top Bar — Go back + Save */}
+      {/* Top bar. One control, because there is only one thing to do up here.
+          Saving, printing and sharing are housekeeping and have moved to the
+          foot of the page with the rest of it — they used to sit above the
+          finding, competing with it for the first thing the eye lands on. */}
       <div className="flex items-center gap-3 no-print">
         <Button
           onClick={onReset}
@@ -218,27 +224,7 @@ export default function AssessmentResult({
         >
           {t(locale, "goBack")}
         </Button>
-        <Button
-          onClick={handleSave}
-          variant="surface"
-          fullWidth={false}
-          icon={<PrinterIcon size={18} />}
-          className="!px-4 ms-auto"
-        >
-          {t(locale, "save")}
-        </Button>
       </div>
-
-      {/* A printed assessment is a physical object that can be found. Saying so
-          is more use than any amount of on-screen privacy assurance. */}
-      <details className="no-print">
-        <summary className="text-sm text-muted-foreground cursor-pointer">
-          {t(locale, "resultSaveOrPrint")}
-        </summary>
-        <p className="text-sm text-hifazat-ink/80 leading-relaxed mt-2 bg-warning-subtle border border-warning/45 rounded-[12px] p-3">
-          {t(locale, "resultPrintWarning")}
-        </p>
-      </details>
 
       {/* Urgent Banner */}
       {data.is_urgent && (
@@ -382,37 +368,6 @@ export default function AssessmentResult({
         </div>
       </section>
 
-      {/* Lawyer referral — offered after the guidance, never before it, so
-          nobody has to hand over a phone number to find out their rights. */}
-      {/* Referral is an action, not a record — nothing to print. */}
-      {canRefer &&
-        (showReferral ? (
-          <ReferralForm
-            context={referralContext}
-            narrative={referralNarrative}
-            assessmentCategory={primaryCategory}
-            assessmentSeverity={data.severity}
-            onClose={() => setShowReferral(false)}
-          />
-        ) : (
-          <Card tone="accent" elevation="card" className="p-6 flex flex-col gap-4 no-print">
-            <div className="flex flex-col gap-2">
-              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-surface-raised text-primary-strong">
-                <ScalesIcon size={22} />
-              </span>
-              <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
-                {t(locale, "referralCtaTitle")}
-              </h3>
-              <p className="text-base text-muted-foreground leading-relaxed">
-                {t(locale, "referralCtaBody")}
-              </p>
-            </div>
-            <Button onClick={() => setShowReferral(true)} size="lg">
-              {t(locale, "referralCtaButton")}
-            </Button>
-          </Card>
-        ))}
-
       {/* Legal breakdown */}
       <section className="flex flex-col gap-4">
         <h2 className="font-heading font-serif text-[28px] leading-[1.2] text-hifazat-ink">
@@ -482,6 +437,39 @@ export default function AssessmentResult({
         </div>
       </section>
 
+      {/* Lawyer referral — last of the things that are for the person to act
+          on, and after the helplines rather than before them. Nobody should
+          have to give a name and a phone number to reach a free number they
+          could have called themselves. */}
+      {/* Referral is an action, not a record — nothing to print. */}
+      {canRefer &&
+        (showReferral ? (
+          <ReferralForm
+            context={referralContext}
+            narrative={referralNarrative}
+            assessmentCategory={primaryCategory}
+            assessmentSeverity={data.severity}
+            onClose={() => setShowReferral(false)}
+          />
+        ) : (
+          <Card tone="accent" elevation="card" className="p-6 flex flex-col gap-4 no-print">
+            <div className="flex flex-col gap-2">
+              <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-surface-raised text-primary-strong">
+                <ScalesIcon size={22} />
+              </span>
+              <h3 className="font-heading font-serif text-2xl text-hifazat-ink">
+                {t(locale, "referralCtaTitle")}
+              </h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                {t(locale, "referralCtaBody")}
+              </p>
+            </div>
+            <Button onClick={() => setShowReferral(true)} size="lg">
+              {t(locale, "referralCtaButton")}
+            </Button>
+          </Card>
+        ))}
+
       {/* Note — grouped as one block so the heading, the note and the reason
           read as one thought rather than three loose paragraphs. */}
       {data.note && (
@@ -498,19 +486,30 @@ export default function AssessmentResult({
         </Card>
       )}
 
-      {/* Housekeeping. None of this is what the page is for, so all three are
-          the same quiet weight and none of them competes with the actions
-          above. */}
-      <div className="flex flex-col sm:flex-row gap-2 no-print">
-        <Button onClick={handleShare} variant="quiet" size="sm" icon={<ShareIcon size={18} />}>
-          {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
-        </Button>
-        <Button onClick={onReset} variant="quiet" size="sm">
-          {t(locale, "resultNewAssessment")}
-        </Button>
-        <Button href="/" variant="quiet" size="sm">
-          {t(locale, "backHome")}
-        </Button>
+      {/* Housekeeping, all of it, in one place at the end.
+          None of this is what the page is for. It was previously spread across
+          three positions — a save button in the top bar, a print warning in a
+          disclosure under it, and three more buttons down here — which made
+          the page feel like a document with a toolbar rather than an answer.
+          Same quiet weight for all of them, and the print warning sits with the
+          control it is about instead of above the finding. */}
+      <div className="flex flex-col gap-2 no-print">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={handleSave} variant="quiet" size="sm" icon={<PrinterIcon size={18} />}>
+            {t(locale, "resultSaveOrPrint")}
+          </Button>
+          <Button onClick={handleShare} variant="quiet" size="sm" icon={<ShareIcon size={18} />}>
+            {shareCopied ? t(locale, "resultShareCopied") : t(locale, "resultShare")}
+          </Button>
+          <Button onClick={onReset} variant="quiet" size="sm">
+            {t(locale, "resultNewAssessment")}
+          </Button>
+        </div>
+        {/* A printed assessment is a physical object that can be found. Saying
+            so is more use than any amount of on-screen privacy assurance. */}
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {t(locale, "resultPrintWarning")}
+        </p>
       </div>
 
 
